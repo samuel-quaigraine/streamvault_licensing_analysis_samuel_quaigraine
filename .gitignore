@@ -1,0 +1,33 @@
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+!.example.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Testing
+.pytest_cache/
+
+# Data files
+*.parquet
+*.xlsx
+
+# Allow candidate list for reproducibility
+!id_list.csv
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Reference materials and lab aids
+h3lp/
+git_handbook.pdf
+*.pdf
+
+# Operating system
+.DS_Store
+Thumbs.db

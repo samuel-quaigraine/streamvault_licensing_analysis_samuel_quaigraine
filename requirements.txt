@@ -1,0 +1,7 @@
+# StreamVault Licensing Analysis Dependencies
+# Project dependencies will be specified here in subsequent steps
+# E.g.:
+# requests
+# pandas
+# python-dotenv
+# pytest
