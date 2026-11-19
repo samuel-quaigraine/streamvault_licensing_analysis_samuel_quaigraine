@@ -12,6 +12,11 @@ from pipeline.load import load_candidate_ids
 
 
 def test_candidate_loader_counts():
+    """
+    BLOCK: Test Total Candidate Accounting
+    What it does: Confirms that load_candidate_ids() accurately loads all 127 lines,
+    identifies exactly 117 unique valid numeric IDs, and logs 10 exclusions.
+    """
     candidate_df, valid_ids, exclusion_log = load_candidate_ids()
 
     # Must account for exactly 127 candidate lines
@@ -21,6 +26,11 @@ def test_candidate_loader_counts():
 
 
 def test_line_69_empty_row_detection():
+    """
+    BLOCK: Test Empty Line 69 Detection
+    What it does: Confirms that line 69 is explicitly detected as an empty row,
+    flagged as EXCLUDED, and documented in the exclusion log.
+    """
     candidate_df, valid_ids, exclusion_log = load_candidate_ids()
 
     # Line 69 is index 67 in data_lines (line 1 is header, line 69 is line_number 69)
@@ -37,25 +47,35 @@ def test_line_69_empty_row_detection():
 
 
 def test_non_numeric_and_negative_formats():
+    """
+    BLOCK: Test Format & Domain Errors
+    What it does: Verifies that negative ID -1 (line 30), IMDb ID tt0468569 (line 95),
+    and string 'N/A' (line 111) are properly caught and classified.
+    """
     candidate_df, valid_ids, exclusion_log = load_candidate_ids()
 
-    # Line 30: -1
+    # Line 30: Negative integer -1
     line_30 = candidate_df[candidate_df["line_number"] == 30].iloc[0]
     assert line_30["status"] == "EXCLUDED"
     assert "Negative" in line_30["reason"]
 
-    # Line 95: tt0468569
+    # Line 95: External IMDb alphanumeric format tt0468569
     line_95 = candidate_df[candidate_df["line_number"] == 95].iloc[0]
     assert line_95["status"] == "EXTERNAL_FORMAT"
     assert "IMDb" in line_95["reason"]
 
-    # Line 111: N/A
+    # Line 111: Text missing marker 'N/A'
     line_111 = candidate_df[candidate_df["line_number"] == 111].iloc[0]
     assert line_111["status"] == "EXCLUDED"
     assert "missing string" in line_111["reason"]
 
 
 def test_duplicate_identifications():
+    """
+    BLOCK: Test Exact Duplicate Detection
+    What it does: Verifies that all 6 duplicate IDs (155, 278, 550, 603, 680, 1891)
+    are recognized and flagged as DUPLICATE.
+    """
     candidate_df, valid_ids, exclusion_log = load_candidate_ids()
 
     duplicates = candidate_df[candidate_df["status"] == "DUPLICATE"]

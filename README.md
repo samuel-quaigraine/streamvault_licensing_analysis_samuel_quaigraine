@@ -196,6 +196,30 @@ streamvault_licensing_analysis_samuel_quaigraine/
 │   ├── ADR-004-two-window-era-split.md
 │   └── ADR-005-vectorization-and-scale.md
 │
+├── diagnosis/                        # Standalone Data Diagnosis & Audit Suite
+│   ├── README.md                     # Complete audit methodology & reproducible code
+│   └── diagnose.py                   # Automated reconciliation and zero-revenue audit
+│
+├── docs/                             # Architecture & Visual Trend Documentation
+│   ├── architecture.md               # Mermaid ERD, Flowchart, and Data Dictionary
+│   ├── visualizations.md             # In-depth executive visual trend analysis
+│   └── images/                       # Generated publication-quality trend charts
+│       ├── era_trends_box_office.png
+│       ├── franchise_vs_standalone_roi.png
+│       ├── top_franchises_revenue.png
+│       ├── budget_vs_revenue_multiples.png
+│       └── ratings_vs_return.png
+│
+├── output/                           # Deliverable Data Exports & Audit Artifacts
+│   ├── clean_films.csv               # 112 verified titles at film grain
+│   ├── clean_cast.csv                # 7,827 cast member credits
+│   ├── clean_crew.csv                # 24,932 crew member credits
+│   ├── summary_kpis.csv              # Dual-window comparative KPIs
+│   ├── franchise_rankings.csv        # Top franchise collections by revenue
+│   ├── standalone_rankings.csv       # Top standalone acquisitions by ROI
+│   ├── candidate_reconciliation.csv  # 127-line audit ledger
+│   └── profiling_summary.json        # Schema, null, and financial summary
+│
 ├── tests/                            # Automated test suite (pytest)
 │   ├── test_loader.py                # Candidate audit and line 69 assertions
 │   ├── test_transform.py             # Grain invariants and financial calculations
@@ -227,7 +251,30 @@ The raw candidate file was assembled over four years from three unverified sourc
 
 ---
 
-## 5. Getting Started & Reproducibility Guide
+## 5. Visual Trends & Catalog Analysis
+
+Comprehensive visualizations and executive summaries are maintained in [`docs/visualizations.md`](docs/visualizations.md). Key trends across the 112 verified candidates:
+
+### Era Trends & Franchise Commercial Returns
+| Era Box Office Volume & Budgets | Franchise vs. Standalone Commercial ROI |
+|---|---|
+| ![Era Trends](docs/images/era_trends_box_office.png) | ![Franchise vs Standalone](docs/images/franchise_vs_standalone_roi.png) |
+| *Modern titles dominate aggregate box office volume, while pre-2000 titles retain high capital efficiency.* | *Franchise bundles show higher median returns (5.62x vs 3.84x) and tighter risk distributions.* |
+
+### Ecosystem Volume, Multiples & Audience Ratings
+| Top Franchise Gross Revenue | Budget vs. Revenue Multiples | Ratings vs. Commercial Return |
+|---|---|---|
+| ![Top Franchises](docs/images/top_franchises_revenue.png) | ![Budget Multiples](docs/images/budget_vs_revenue_multiples.png) | ![Ratings vs Return](docs/images/ratings_vs_return.png) |
+| *Top 5 universes account for >$30B gross.* | *Highest multiples cluster in $30M–$150M tiers.* | *High ratings (>7.5) consistently protect capital.* |
+
+To re-generate all charts at any time:
+```bash
+python generate_charts.py
+```
+
+---
+
+## 6. Getting Started & Reproducibility Guide
 
 ### Prerequisites
 - Python 3.11 or higher
@@ -269,7 +316,7 @@ The raw candidate file was assembled over four years from three unverified sourc
 
 ---
 
-## 6. How to Run the Pipeline
+## 7. How to Run the Pipeline
 
 Execute the full end-to-end pipeline with one command:
 ```bash
@@ -295,7 +342,7 @@ jupyter notebook analysis_and_profiling.ipynb
 
 ---
 
-## 7. How to Use the Executive Strategy Tool
+## 8. How to Use the Executive Strategy Tool
 
 For live executive meetings, use `streamvault_tool.py` to run scenarios instantly:
 
@@ -312,7 +359,7 @@ python streamvault_tool.py --budget 10.0 --franchise-pct 80
 
 ---
 
-## 8. Scalability & Running Next Year's 500 Titles
+## 9. Scalability & Running Next Year's 500 Titles
 
 Next year, when Kwame's analyst Adjoa receives 500 titles:
 1. Replace `id_list.csv` with the new file.
@@ -322,7 +369,7 @@ Next year, when Kwame's analyst Adjoa receives 500 titles:
 
 ---
 
-## 9. Running Automated Tests
+## 10. Running Automated Tests
 
 Run the full automated test suite using `pytest`:
 ```bash
@@ -332,6 +379,6 @@ All tests verify candidate parsing, line 69 empty row handling, grain preservati
 
 ---
 
-## 10. Data Protection & Ethics
+## 11. Data Protection & Ethics
 - Never commit `.env` or API credentials to version control.
 - The pipeline implements polite API access: local disk caching, 0.05s rate-limit delays, session re-use, and automated backoff to respect free public API resources.

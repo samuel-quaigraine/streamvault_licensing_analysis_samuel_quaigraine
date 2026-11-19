@@ -11,7 +11,11 @@ import sys
 from pathlib import Path
 import json
 
-# Ensure project root is in sys.path
+# ==============================================================================
+# BLOCK: Environment & Path Setup
+# What it does: Adds the project root directory to sys.path so modules from the
+# pipeline package can be imported seamlessly regardless of current working directory.
+# ==============================================================================
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -24,11 +28,22 @@ from pipeline.checks import profile_dataset, quality_report
 
 
 def run_full_diagnosis():
+    """
+    BLOCK: Full Data Diagnosis Routine
+    What it does: Performs a 4-step comprehensive audit:
+    Step 1: Raw candidate ingestion & line-by-line classification
+    Step 2: Live catalog 404 dead ID audit
+    Step 3: 6-stage candidate reconciliation ledger
+    Step 4: Disguised null ($0) and IQR outlier profiling
+    """
     print("=" * 80)
     print("STREAMVAULT DATA DIAGNOSIS ENGINE")
     print("=" * 80)
 
-    # 1. Audit Raw Input File
+    # ==========================================================================
+    # STEP 1: Audit Raw Input File (id_list.csv)
+    # What it does: Reads all lines, audits header, and classifies every single line.
+    # ==========================================================================
     print("\n--- STEP 1: AUDITING RAW CANDIDATE INPUT (id_list.csv) ---")
     if not ID_LIST_PATH.exists():
         print(f"Error: Could not locate {ID_LIST_PATH}")
@@ -52,7 +67,10 @@ def run_full_diagnosis():
         raw_display = row.raw_id if row.raw_id.strip() else "<BLANK ROW>"
         print(f"{row.line_number:<8} | {raw_display:<14} | {row.status:<16} | {row.reason}")
 
-    # 2. Check Dead IDs (404s)
+    # ==========================================================================
+    # STEP 2: Live Catalog Resolution (404 Not Found)
+    # What it does: Audits IDs that permanently failed live API resolution.
+    # ==========================================================================
     print("\n--- STEP 2: LIVE CATALOG RESOLUTION (404 NOT FOUND) ---")
     dead_ids_file = RAW_DIR / "dead_ids.json"
     dead_ids = []
@@ -63,7 +81,10 @@ def run_full_diagnosis():
     for did in dead_ids:
         print(f"  - TMDb ID {did}: Deprecated/obsolete record, no longer resolves")
 
-    # 3. Final Candidate Reconciliation Table
+    # ==========================================================================
+    # STEP 3: 6-Stage Candidate Reconciliation Table
+    # What it does: Displays the complete mathematical reconciliation ledger.
+    # ==========================================================================
     print("\n--- STEP 3: 6-STAGE CANDIDATE RECONCILIATION TABLE ---")
     reconciliation = [
         {"Stage": "1. Raw CSV Ingestion", "Rows": 127, "Delta": 0, "Reason": "Starting candidate list from tracker, spreadsheet, and studio emails"},
@@ -76,7 +97,10 @@ def run_full_diagnosis():
     recon_df = pd.DataFrame(reconciliation)
     print(recon_df.to_string(index=False))
 
-    # 4. Profiling Analytical Frame
+    # ==========================================================================
+    # STEP 4: Data Profiling & Disguised Null Audit
+    # What it does: Profiles the clean dataset for $0 revenues, missing dates, and IQR outliers.
+    # ==========================================================================
     print("\n--- STEP 4: DATA PROFILING & DISGUISED NULL AUDIT ---")
     films_path = PROCESSED_DIR / "films_analytical.csv"
     if films_path.exists():

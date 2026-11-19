@@ -27,9 +27,17 @@ from pipeline.config import (
 
 
 class TMDBExtractor:
-    """Handles rate-limited, cached HTTP requests to TMDb."""
+    """
+    Handles rate-limited, cached HTTP requests to TMDb.
+    Ensures network efficiency, offline execution, and complete audit logging.
+    """
 
     def __init__(self, raw_dir: Path = RAW_DIR, manifest_path: Path = MANIFEST_PATH):
+        # ======================================================================
+        # BLOCK: Initialize Directories & Network Session
+        # What it does: Creates raw storage folders, sets up an HTTP session with
+        # standard user-agent headers and authentication token if available.
+        # ======================================================================
         self.raw_dir = raw_dir
         self.manifest_path = manifest_path
         self.raw_dir.mkdir(parents=True, exist_ok=True)
@@ -49,7 +57,11 @@ class TMDBExtractor:
         self._init_manifest()
 
     def _get_cached_dead_ids(self) -> Set[int]:
-        """Load known dead IDs from cache."""
+        """
+        BLOCK: Load Cached Dead 404 IDs
+        What it does: Reads the list of known non-existent IDs from disk so we
+        never waste time or network bandwidth re-querying dead records.
+        """
         if self.dead_ids_file.exists():
             try:
                 with open(self.dead_ids_file, "r", encoding="utf-8") as f:
@@ -59,14 +71,22 @@ class TMDBExtractor:
         return set()
 
     def _cache_dead_id(self, movie_id: int) -> None:
-        """Record dead ID to cache to prevent re-querying permanent failures."""
+        """
+        BLOCK: Save Dead ID to Cache
+        What it does: Records a confirmed 404 ID to dead_ids.json so future
+        pipeline runs know immediately that this title does not exist.
+        """
         dead_ids = self._get_cached_dead_ids()
         dead_ids.add(movie_id)
         with open(self.dead_ids_file, "w", encoding="utf-8") as f:
             json.dump(sorted(list(dead_ids)), f, indent=2)
 
     def _init_manifest(self) -> None:
-        """Initialize the acquisition manifest file if not existing."""
+        """
+        BLOCK: Manifest CSV Initialization
+        What it does: Creates the audit trail file (manifest.csv) with standard
+        column headers if it does not already exist.
+        """
         if not self.manifest_path.exists():
             with open(self.manifest_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
@@ -90,7 +110,11 @@ class TMDBExtractor:
         elapsed_ms: float,
         error_message: str = ""
     ) -> None:
-        """Append an entry to the manifest."""
+        """
+        BLOCK: Manifest Logger
+        What it does: Records every single data request (whether served from local
+        cache or live network) with timing, status code, and timestamp.
+        """
         with open(self.manifest_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow([
@@ -109,10 +133,14 @@ class TMDBExtractor:
         params: Optional[Dict[str, Any]] = None,
         max_retries: int = 3
     ) -> requests.Response:
-        """Fetch URL with exponential backoff on 429 and transient 5xx errors."""
+        """
+        BLOCK: Polite HTTP Request with Exponential Backoff
+        What it does: Sends HTTP requests to TMDb. If TMDb returns rate limit (429)
+        or temporary server errors (500/502/503/504), it waits and retries safely.
+        """
         attempt = 0
         current_params = dict(params or {})
-        # If no bearer token, use query param API key
+        # If no bearer token header, attach query parameter API key
         if TMDB_API_KEY and "Authorization" not in self.session.headers:
             current_params["api_key"] = TMDB_API_KEY
         elif TMDB_API_KEY and "api_key" not in current_params:
@@ -123,20 +151,20 @@ class TMDBExtractor:
             try:
                 resp = self.session.get(url, params=current_params, timeout=REQUEST_TIMEOUT)
                 
-                # Check for rate limit
+                # If rate limited, respect Retry-After header or backoff exponentially
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("Retry-After")
                     sleep_time = int(retry_after) if retry_after and retry_after.isdigit() else (2 ** attempt)
                     time.sleep(sleep_time)
                     continue
 
-                # Transient server errors: retry
+                # If transient server hiccup, wait and retry
                 if resp.status_code in (500, 502, 503, 504):
                     time.sleep(2 ** attempt)
                     continue
 
                 return resp
-            except (requests.ConnectionError, requests.Timeout) as e:
+            except (requests.ConnectionError, requests.Timeout):
                 if attempt >= max_retries:
                     raise
                 time.sleep(2 ** attempt)
@@ -145,16 +173,17 @@ class TMDBExtractor:
 
     def get_movie_details(self, movie_id: int) -> Tuple[Optional[Dict[str, Any]], str, Optional[int]]:
         """
-        Fetch movie details JSON, checking local cache first.
-        Returns: (data_dict_or_None, source, status_code)
+        BLOCK: Fetch Movie Details
+        What it does: Retrieves movie metadata (title, budget, revenue, release date).
+        Checks local disk cache first; only calls live network if not cached.
         """
-        # Check if known dead 404 ID
+        # Step 1: Check if this ID is already known to be a dead 404 ID
         if movie_id in self._get_cached_dead_ids():
             return None, "cache", 404
 
         cache_file = self.raw_dir / f"movie_{movie_id}.json"
         
-        # 1. Check Cache
+        # Step 2: Check local disk cache (fast, offline)
         if cache_file.exists():
             with open(cache_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -162,7 +191,7 @@ class TMDBExtractor:
             self._log_manifest(movie_id, "movie_details", 200, "cache", mtime, 0.0)
             return data, "cache", 200
 
-        # 2. Network Fetch
+        # Step 3: Fetch from live TMDb network (if not in cache)
         time.sleep(RATE_LIMIT_SLEEP)
         url = MOVIE_ENDPOINT.format(movie_id=movie_id)
         start_t = time.perf_counter()
@@ -179,7 +208,7 @@ class TMDBExtractor:
                 self._log_manifest(movie_id, "movie_details", 200, "network", now_utc, elapsed_ms)
                 return data, "network", 200
             elif resp.status_code == 404:
-                # Dead ID: do not retry, cache as dead ID
+                # Cache dead ID to avoid redundant future network calls
                 self._cache_dead_id(movie_id)
                 self._log_manifest(movie_id, "movie_details", 404, "network", now_utc, elapsed_ms, "404 Not Found")
                 return None, "network", 404
@@ -193,12 +222,13 @@ class TMDBExtractor:
 
     def get_movie_credits(self, movie_id: int) -> Tuple[Optional[Dict[str, Any]], str, Optional[int]]:
         """
-        Fetch movie credits JSON, checking local cache first.
-        Returns: (data_dict_or_None, source, status_code)
+        BLOCK: Fetch Movie Credits
+        What it does: Retrieves cast and crew members for the movie.
+        Checks local disk cache first before making any network call.
         """
         cache_file = self.raw_dir / f"credits_{movie_id}.json"
         
-        # 1. Check Cache
+        # Step 1: Check local disk cache
         if cache_file.exists():
             with open(cache_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -206,7 +236,7 @@ class TMDBExtractor:
             self._log_manifest(movie_id, "movie_credits", 200, "cache", mtime, 0.0)
             return data, "cache", 200
 
-        # 2. Network Fetch
+        # Step 2: Fetch from live TMDb network
         time.sleep(RATE_LIMIT_SLEEP)
         url = CREDITS_ENDPOINT.format(movie_id=movie_id)
         start_t = time.perf_counter()
@@ -234,7 +264,11 @@ class TMDBExtractor:
             raise
 
     def resolve_imdb_id(self, imdb_id: str) -> Optional[int]:
-        """Attempt to find TMDb movie ID from an IMDb identifier."""
+        """
+        BLOCK: Resolve External IMDb Identifiers
+        What it does: Calls TMDb's /find endpoint to convert an IMDb ID
+        (e.g., 'tt0468569') into its corresponding TMDb movie integer ID (155).
+        """
         time.sleep(RATE_LIMIT_SLEEP)
         url = FIND_ENDPOINT.format(external_id=imdb_id)
         try:
@@ -253,11 +287,9 @@ class TMDBExtractor:
         valid_ids: List[int]
     ) -> Tuple[Dict[int, Dict[str, Any]], List[int], Dict[str, int]]:
         """
-        Fetch details and credits for all candidate IDs.
-        Returns:
-            movies_dict: {movie_id: {"details": details, "credits": credits}}
-            dead_ids: List of IDs that returned 404
-            stats: Summary counts of network vs cache calls
+        BLOCK: Extract All Movies in Batch
+        What it does: Iterates over the list of valid candidate IDs, fetches details
+        and credits for each, tracks 404s, and records network vs cache statistics.
         """
         movies_dict = {}
         dead_ids = []

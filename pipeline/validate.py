@@ -21,7 +21,12 @@ def safe_merge_one_to_one(
     """
     before_len = len(left_df)
     
-    # Perform validated merge with indicator
+    # ==========================================================================
+    # BLOCK: Execute Guarded 1-to-1 Merge
+    # What it does: Merges two tables using pandas validate='one_to_one' and
+    # indicator=True. If a key appears multiple times, pandas immediately throws
+    # an exception rather than silently multiplying rows.
+    # ==========================================================================
     merged = left_df.merge(
         right_df,
         on=on,
@@ -30,13 +35,21 @@ def safe_merge_one_to_one(
         indicator=True
     )
     
-    # Assert row count preserved
+    # ==========================================================================
+    # BLOCK: Fan-out Row Count Assertion
+    # What it does: Confirms that the output row count exactly matches the left table.
+    # This mathematically guarantees zero fan-out or duplicate row multiplication.
+    # ==========================================================================
     after_len = len(merged)
     assert after_len == before_len, (
         f"Fan-out detected in merge between {left_name} and {right_name}! "
         f"Expected {before_len} rows, got {after_len} rows."
     )
 
+    # ==========================================================================
+    # BLOCK: Build Merge Audit Summary
+    # What it does: Summarizes how many records matched both tables versus left only.
+    # ==========================================================================
     indicator_counts = merged["_merge"].value_counts().to_dict()
     report = {
         "left_table": left_name,
@@ -50,7 +63,7 @@ def safe_merge_one_to_one(
         "right_only": indicator_counts.get("right_only", 0),
     }
 
-    # Drop indicator column before returning clean frame
+    # Clean up internal merge flag column before returning
     clean_merged = merged.drop(columns=["_merge"])
     return clean_merged, report
 
@@ -64,18 +77,28 @@ def validate_cast_crew_grain(
     Validate that cast and crew tables preserve referential integrity
     without multiplying films.
     """
+    # ==========================================================================
+    # BLOCK: Referential Integrity Checks
+    # What it does: Confirms that every cast member and crew member is linked to
+    # a verified movie_id that actually exists in the films table.
+    # ==========================================================================
     film_ids = set(films_df["movie_id"])
     cast_film_ids = set(cast_df["movie_id"]) if not cast_df.empty else set()
     crew_film_ids = set(crew_df["movie_id"]) if not crew_df.empty else set()
 
-    # Cast members should belong to known films
+    # Identify any orphaned credits
     unmatched_cast_films = cast_film_ids - film_ids
     unmatched_crew_films = crew_film_ids - film_ids
 
-    # Films with no cast or crew
+    # Films with no cast or crew credits
     films_without_cast = film_ids - cast_film_ids
     films_without_crew = film_ids - crew_film_ids
 
+    # ==========================================================================
+    # BLOCK: Assemble Audit Metrics & Enforce Zero-Orphan Invariant
+    # What it does: Compiles grain statistics (e.g. average cast per film) and
+    # asserts that zero orphaned credit records exist.
+    # ==========================================================================
     report = {
         "total_films": len(films_df),
         "films_in_cast": len(cast_film_ids),

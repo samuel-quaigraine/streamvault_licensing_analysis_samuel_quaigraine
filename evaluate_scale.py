@@ -15,12 +15,15 @@ from pipeline.transform import engineer_financial_metrics, compute_kpis
 
 def benchmark_apply_vs_vectorized(df: pd.DataFrame, n_repetitions: int = 100) -> Dict[str, Any]:
     """
-    Compare row-wise apply(axis=1) vs vectorized np.where / np.select.
-    Repeated n_repetitions times to get accurate median timings.
+    BLOCK: Row-wise apply() vs Vectorized NumPy Benchmark
+    What it does: Measures how much faster vectorized NumPy (np.select) runs
+    compared to traditional row-by-row Python loops (df.apply).
+    Repeated 100 times for accurate statistical timing.
     """
-    test_df = pd.concat([df] * 10, ignore_index=True)  # ~1,120 rows for meaningful timing
+    # Create an expanded sample (~1,120 rows) for stable microsecond benchmarking
+    test_df = pd.concat([df] * 10, ignore_index=True)
     
-    # 1. Row-wise apply
+    # Step 1: Benchmark row-wise Python apply() loop
     def calc_tier_apply(row):
         b = row["budget"]
         r = row["revenue"]
@@ -39,7 +42,7 @@ def benchmark_apply_vs_vectorized(df: pd.DataFrame, n_repetitions: int = 100) ->
         _ = test_df.apply(calc_tier_apply, axis=1)
     apply_time = (time.perf_counter() - t0) / n_repetitions
 
-    # 2. Vectorized np.select
+    # Step 2: Benchmark vectorized NumPy np.select
     t0 = time.perf_counter()
     for _ in range(n_repetitions):
         ratio = np.where(test_df["budget"] > 0, test_df["revenue"] / test_df["budget"], np.nan)
@@ -48,6 +51,7 @@ def benchmark_apply_vs_vectorized(df: pd.DataFrame, n_repetitions: int = 100) ->
         _ = np.select(conds, choices, default="Unknown")
     vec_time = (time.perf_counter() - t0) / n_repetitions
 
+    # Step 3: Compute speedup multiple
     speedup = apply_time / vec_time if vec_time > 0 else 0.0
     return {
         "apply_time_sec": apply_time,
@@ -59,23 +63,26 @@ def benchmark_apply_vs_vectorized(df: pd.DataFrame, n_repetitions: int = 100) ->
 
 def evaluate_scalability(df: pd.DataFrame) -> Dict[str, Any]:
     """
-    Measure end-to-end compute runtime on 112 titles, 500 titles, and 5,000 titles.
+    BLOCK: Scalability Projection (112, 500, and 5,000 Titles)
+    What it does: Tests feature engineering and KPI calculation at 112, 500, and
+    5,000 titles to demonstrate that next year's 500-title workload will run instantly.
     """
     results = {}
     sizes = [len(df), 500, 5000]
 
     for size in sizes:
-        # Build synthetic representative dataset of given size
+        # Build synthetic representative dataset of target scale
         multiplier = (size // len(df)) + 1
         synth = pd.concat([df] * multiplier, ignore_index=True).iloc[:size].copy()
         
         t0 = time.perf_counter()
-        # Stage A: Cleaning & Feature Engineering
+        
+        # Measure cleaning & vectorized feature engineering time
         t_clean_start = time.perf_counter()
         cleaned = engineer_financial_metrics(synth, treat_zero_revenue_as_missing=True)
         t_clean = time.perf_counter() - t_clean_start
 
-        # Stage B: Grouped KPI Aggregation
+        # Measure grouped KPI calculation time
         t_agg_start = time.perf_counter()
         _ = compute_kpis(cleaned, era_filter=None)
         _ = compute_kpis(cleaned, era_filter="2000-Onward")
@@ -94,6 +101,10 @@ def evaluate_scalability(df: pd.DataFrame) -> Dict[str, Any]:
 
 
 def run_benchmark():
+    # ==========================================================================
+    # BLOCK: Load Data & Execute Benchmark
+    # What it does: Runs apply vs vectorized comparisons and prints the scale table.
+    # ==========================================================================
     films_path = PROCESSED_DIR / "films_analytical.csv"
     if not films_path.exists():
         print(f"File not found: {films_path}. Run run_pipeline.py first.")
@@ -104,14 +115,14 @@ def run_benchmark():
     print("PERFORMANCE & SCALABILITY BENCHMARK")
     print("=" * 60)
 
-    # 1. Apply vs Vectorized
+    # 1. Print Apply vs Vectorized results
     bench = benchmark_apply_vs_vectorized(df)
     print(f"\n1. Apply vs. Vectorized Comparison ({bench['rows_tested']} rows):")
     print(f"   apply(axis=1):    {bench['apply_time_sec']*1000:.3f} ms")
     print(f"   np.select vector: {bench['vectorized_time_sec']*1000:.3f} ms")
     print(f"   Speedup Factor:   {bench['speedup_ratio']:.1f}x faster")
 
-    # 2. Scalability across sizes
+    # 2. Print dataset size scaling table
     scale = evaluate_scalability(df)
     print("\n2. Compute Scalability Across Dataset Sizes:")
     print(f"   {'Size':<8} | {'Cleaning (ms)':<14} | {'KPI Agg (ms)':<14} | {'Total (ms)':<12}")

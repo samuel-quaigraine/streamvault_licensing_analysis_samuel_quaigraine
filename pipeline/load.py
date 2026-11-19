@@ -22,13 +22,25 @@ def load_candidate_ids(
         valid_ids: List of unique positive integer TMDb IDs ready for acquisition.
         exclusion_log: List of dictionaries documenting every excluded or duplicate line.
     """
+    # ==========================================================================
+    # BLOCK: File Existence Check
+    # What it does: Ensures the input CSV file exists before trying to read it.
+    # ==========================================================================
     if not filepath.exists():
         raise FileNotFoundError(f"Candidate file not found at: {filepath}")
 
+    # ==========================================================================
+    # BLOCK: Read Raw Lines
+    # What it does: Reads the file line by line without stripping newlines early,
+    # so empty lines like line 69 are accurately preserved and counted.
+    # ==========================================================================
     with open(filepath, "r", encoding="utf-8") as f:
         raw_lines = [line.rstrip("\r\n") for line in f]
 
-    # Verify header
+    # ==========================================================================
+    # BLOCK: Header Verification
+    # What it does: Confirms line 1 is the expected CSV header 'tmdb_id'.
+    # ==========================================================================
     if not raw_lines or raw_lines[0].strip() != "tmdb_id":
         raise ValueError(f"Expected first line to be 'tmdb_id', got: {raw_lines[0] if raw_lines else 'empty'}")
 
@@ -40,11 +52,22 @@ def load_candidate_ids(
     seen_ids = set()
     exclusion_log = []
 
+    # ==========================================================================
+    # BLOCK: Line-by-Line Candidate Audit Loop
+    # What it does: Loops through all 127 lines and classifies each entry:
+    # 1. Empty lines (Line 69)
+    # 2. Text missing markers ('N/A')
+    # 3. External IMDb format ('tt0468569')
+    # 4. Non-numeric or malformed text
+    # 5. Negative numbers ('-1')
+    # 6. Duplicate numbers
+    # 7. Valid positive TMDb integer IDs
+    # ==========================================================================
     for idx, raw_val in enumerate(data_lines):
         line_num = idx + 2  # 1-based index (header is line 1)
         trimmed = raw_val.strip()
 
-        # Check for empty line (specifically line 69)
+        # Step 1: Check for empty line (specifically line 69)
         if not trimmed:
             reason = "Empty row / missing identifier"
             records.append({
@@ -63,7 +86,7 @@ def load_candidate_ids(
             })
             continue
 
-        # Check for explicit string missing markers like N/A
+        # Step 2: Check for explicit string missing markers like N/A
         if trimmed.upper() in ("N/A", "NA", "NULL", "NONE"):
             reason = "Literal missing string marker"
             records.append({
@@ -82,7 +105,7 @@ def load_candidate_ids(
             })
             continue
 
-        # Check for IMDb format (e.g. tt0468569)
+        # Step 3: Check for IMDb format (e.g. tt0468569)
         if trimmed.startswith("tt"):
             reason = "IMDb alphanumeric format instead of TMDb numeric integer"
             records.append({
@@ -102,7 +125,7 @@ def load_candidate_ids(
             })
             continue
 
-        # Attempt integer parsing
+        # Step 4: Attempt integer parsing
         try:
             parsed_id = int(trimmed)
         except ValueError:
@@ -123,7 +146,7 @@ def load_candidate_ids(
             })
             continue
 
-        # Check for negative IDs
+        # Step 5: Check for negative IDs (domain violation)
         if parsed_id < 0:
             reason = f"Negative integer identifier ({parsed_id})"
             records.append({
@@ -142,7 +165,7 @@ def load_candidate_ids(
             })
             continue
 
-        # Check for duplicate IDs
+        # Step 6: Check for duplicate IDs already processed
         if parsed_id in seen_ids:
             reason = f"Duplicate identifier of earlier entry ({parsed_id})"
             records.append({
@@ -161,7 +184,7 @@ def load_candidate_ids(
             })
             continue
 
-        # Valid candidate ID
+        # Step 7: Record valid unique candidate ID
         seen_ids.add(parsed_id)
         records.append({
             "line_number": line_num,
@@ -172,6 +195,11 @@ def load_candidate_ids(
             "category": "Valid"
         })
 
+    # ==========================================================================
+    # BLOCK: Assemble Audit Dataframe & Valid ID List
+    # What it does: Converts the audit records into a pandas DataFrame and
+    # returns the list of unique valid IDs ready for TMDb extraction.
+    # ==========================================================================
     candidate_df = pd.DataFrame(records)
     valid_ids = sorted([r["parsed_id"] for r in records if r["status"] == "VALID"])
 
@@ -184,13 +212,24 @@ def load_cached_movie_data(
 ) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
     """
     Load movie details and credits JSON responses from disk cache.
+    
+    What it does: Reads local JSON files from data/raw/ so the pipeline
+    runs completely offline without making unnecessary network requests.
     """
+    # ==========================================================================
+    # BLOCK: Resolve Cache Paths
+    # What it does: Locates the cached details and credits files for this movie ID.
+    # ==========================================================================
     details_path = raw_dir / f"movie_{movie_id}.json"
     credits_path = raw_dir / f"credits_{movie_id}.json"
 
     details = None
     credits_data = None
 
+    # ==========================================================================
+    # BLOCK: Load Cached JSON from Disk
+    # What it does: Reads the JSON files if they exist on disk.
+    # ==========================================================================
     if details_path.exists():
         with open(details_path, "r", encoding="utf-8") as f:
             details = json.load(f)

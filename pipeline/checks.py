@@ -19,19 +19,28 @@ def profile_dataset(films_df: pd.DataFrame) -> Dict[str, Any]:
     """
     total_records = len(films_df)
     
-    # Missingness & Disguised Nulls
+    # ==========================================================================
+    # BLOCK: Detect Disguised Nulls ($0 Values)
+    # What it does: Counts rows where revenue or budget is zero. In entertainment data,
+    # studios often record $0 when the actual box office or production budget is unknown.
+    # ==========================================================================
     zero_revenue_count = int((films_df["revenue"] == 0).sum())
     zero_budget_count = int((films_df["budget"] == 0).sum())
     both_zero_count = int(((films_df["revenue"] == 0) & (films_df["budget"] == 0)).sum())
     missing_release_dates = int(films_df["release_date"].isna().sum())
     
-    # Era distribution
+    # ==========================================================================
+    # BLOCK: Category Breakdown
+    # What it does: Tallies films by era (Pre-2000 vs 2000-Onward) and franchise status.
+    # ==========================================================================
     era_counts = films_df["era"].value_counts().to_dict()
-    
-    # Franchise distribution
     franchise_counts = films_df["is_franchise"].value_counts().to_dict()
     
-    # Financial distribution stats (for non-zero values)
+    # ==========================================================================
+    # BLOCK: Parametric & Non-Parametric Financial Distributions
+    # What it does: Computes median, mean, standard deviation, and IQR (interquartile range)
+    # on non-zero financial metrics to understand central tendency without skew.
+    # ==========================================================================
     valid_rev = films_df[films_df["revenue"] > 0]["revenue"]
     valid_bud = films_df[films_df["budget"] > 0]["budget"]
     valid_roi = films_df[films_df["return_on_cost"].notna()]["return_on_cost"] if "return_on_cost" in films_df.columns else pd.Series(dtype=float)
@@ -52,14 +61,17 @@ def profile_dataset(films_df: pd.DataFrame) -> Dict[str, Any]:
             "iqr": float(q75 - q25),
         }
 
-    # Outlier detection using IQR
     rev_stats = stats_summary(valid_rev)
     roi_stats = stats_summary(valid_roi)
     
+    # ==========================================================================
+    # BLOCK: Box Office Outlier Detection (Tukey's IQR Method)
+    # What it does: Flags films whose box office exceeds Q3 + 1.5 * IQR.
+    # These represent global mega-hits like Avatar or Titanic.
+    # ==========================================================================
     revenue_outliers = []
     if rev_stats:
         upper_rev_bound = rev_stats["p75"] + 1.5 * rev_stats["iqr"]
-        extreme_rev_bound = rev_stats["p75"] + 3.0 * rev_stats["iqr"]
         outlier_rows = films_df[films_df["revenue"] > upper_rev_bound]
         revenue_outliers = outlier_rows[["movie_id", "title", "revenue", "release_year"]].to_dict(orient="records")
 
@@ -84,7 +96,11 @@ def profile_dataset(films_df: pd.DataFrame) -> Dict[str, Any]:
 
 def quality_report(df: pd.DataFrame, stage_name: str) -> Dict[str, Any]:
     """
-    Run structured data quality checks and return a report dictionary.
+    BLOCK: Data Quality Assertions Report
+    What it does: Verifies key data health rules:
+    - Primary key uniqueness
+    - Zero exact duplicate rows
+    - Zero negative revenues or negative budgets
     """
     row_count = len(df)
     id_unique = bool(df["movie_id"].is_unique) if "movie_id" in df.columns else False
@@ -126,7 +142,10 @@ def build_reconciliation_table(
     final_films_df: pd.DataFrame
 ) -> List[Dict[str, Any]]:
     """
-    Build the full 127-candidate reconciliation table matching the house template.
+    BLOCK: 6-Stage Candidate Reconciliation Ledger
+    What it does: Explicitly reconciles all 127 raw candidate rows from id_list.csv
+    down to the final 112 verified titles, accounting for format exclusions,
+    IMDb IDs, duplicate IDs, and 404 dead IDs.
     """
     reconciliation = []
 
@@ -197,24 +216,24 @@ def perform_deliberate_spot_check(
     seed: int = 42
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """
-    Perform deliberate 4-slice live spot-check against TMDb API.
-    
-    Slices:
-    1. Random: 3 titles drawn with fixed seed
+    BLOCK: Deliberate 4-Slice Live API Spot-Check
+    What it does: Selects key titles across 4 deliberate slices and queries the live TMDb API:
+    1. Random slice: 3 titles drawn with fixed seed
     2. Extremes: Top revenue title and lowest positive budget title
-    3. Most Transformed: Film with nested collection and deepest cast
+    3. Most Transformed: Film with nested collection and deep cast
     4. Boundary Cases: Film on the 2000 era boundary, $0 revenue film
+    Verifies that pipeline data exactly mirrors upstream studio records.
     """
     np.random.seed(seed)
     sample_ids: List[Tuple[int, str]] = []
 
-    # 1. Random slice (3 titles)
+    # Slice 1: Random slice (3 titles)
     available_ids = list(films_df["movie_id"])
     random_ids = list(np.random.choice(available_ids, size=min(3, len(available_ids)), replace=False))
     for rid in random_ids:
         sample_ids.append((int(rid), "Random"))
 
-    # 2. Extremes
+    # Slice 2: Extremes (highest box office and lowest positive budget)
     top_rev_id = int(films_df.sort_values(by="revenue", ascending=False).iloc[0]["movie_id"])
     sample_ids.append((top_rev_id, "Extremes (Top Revenue)"))
     
@@ -223,13 +242,13 @@ def perform_deliberate_spot_check(
         low_bud_id = int(pos_budget.iloc[0]["movie_id"])
         sample_ids.append((low_bud_id, "Extremes (Lowest Positive Budget)"))
 
-    # 3. Most transformed
+    # Slice 3: Most transformed (franchise title with complex collection structure)
     franchises = films_df[films_df["is_franchise"]]
     if not franchises.empty:
         most_trans_id = int(franchises.iloc[0]["movie_id"])
         sample_ids.append((most_trans_id, "Most Transformed (Franchise Flattening)"))
 
-    # 4. Boundary cases
+    # Slice 4: Boundary cases (millennium threshold 1999/2000 and $0 revenue)
     boundary_era = films_df[films_df["release_year"].isin([1999, 2000])]
     if not boundary_era.empty:
         sample_ids.append((int(boundary_era.iloc[0]["movie_id"]), "Boundary Case (Era Cutoff 1999/2000)"))
@@ -238,7 +257,7 @@ def perform_deliberate_spot_check(
     if not zero_rev.empty:
         sample_ids.append((int(zero_rev.iloc[0]["movie_id"]), "Boundary Case ($0 Revenue)"))
 
-    # Deduplicate sample preserving slice label
+    # Deduplicate sample while preserving descriptive slice labels
     seen = set()
     deliberate_sample = []
     for mid, slice_name in sample_ids:
@@ -246,7 +265,11 @@ def perform_deliberate_spot_check(
             seen.add(mid)
             deliberate_sample.append((mid, slice_name))
 
-    # Re-fetch live from API (bypassing cache for spot-check)
+    # ==========================================================================
+    # BLOCK: Live Query & Field-by-Field Comparison
+    # What it does: Re-queries live TMDb endpoints and verifies title, release date,
+    # budget, and revenue against our analytical table snapshot.
+    # ==========================================================================
     results = []
     matches = 0
     discrepancies = 0
@@ -254,7 +277,7 @@ def perform_deliberate_spot_check(
     for movie_id, slice_label in deliberate_sample:
         row = films_df[films_df["movie_id"] == movie_id].iloc[0]
         
-        # Live fetch bypass cache
+        # Live fetch bypassing local cache
         url = f"https://api.themoviedb.org/3/movie/{movie_id}"
         resp = extractor._fetch_with_backoff(url)
         if resp.status_code != 200:
@@ -273,7 +296,7 @@ def perform_deliberate_spot_check(
 
         live_data = resp.json()
 
-        # Compare fields
+        # Compare essential fields
         checks = [
             ("title", row["title"], live_data.get("title", ""), "exact"),
             ("release_date", str(row["release_date"]), str(live_data.get("release_date", "")), "exact"),
