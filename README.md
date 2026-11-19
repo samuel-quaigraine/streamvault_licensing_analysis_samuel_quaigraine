@@ -276,6 +276,14 @@ Execute the full end-to-end pipeline with one command:
 python run_pipeline.py
 ```
 
+### Interactive Notebook (`analysis_and_profiling.ipynb`)
+To step through the pipeline, data profiling, reconciliation, and KPI comparisons interactively cell-by-cell:
+```bash
+# Launch Jupyter Notebook:
+jupyter notebook analysis_and_profiling.ipynb
+```
+*Or simply open [`analysis_and_profiling.ipynb`](file:///c:/Users/SamuelQuaigraine/workspace2/streamvault_licensing_analysis_samuel_quaigraine/analysis_and_profiling.ipynb) directly in VS Code.* Each code cell is accompanied by narrative explanations and includes pre-rendered tables and distribution outputs.
+
 ### What happens when you run it:
 1. Audits and reconciles all 127 lines from `id_list.csv`.
 2. Fetches details and credits from TMDb. Raw responses are cached in `data/raw/` so future runs are **100% offline** and finish in under 1 second.
