@@ -1,0 +1,53 @@
+{
+  "total_records": 112,
+  "zero_revenue_count": 0,
+  "zero_budget_count": 0,
+  "both_zero_count": 0,
+  "missing_release_dates": 0,
+  "era_breakdown": {
+    "2000-Onward": 71,
+    "Pre-2000": 41
+  },
+  "franchise_breakdown": {
+    "Franchise": 96,
+    "Standalone": 16
+  },
+  "revenue_stats": {
+    "count": 112,
+    "min": 7390108.0,
+    "p25": 295346340.0,
+    "median": 519563017.5,
+    "mean": 599658765.7410715,
+    "p75": 872698393.5,
+    "max": 2942649778.0,
+    "std": 436246692.93597853,
+    "iqr": 577352053.5
+  },
+  "budget_stats": {
+    "count": 112,
+    "min": 1200000.0,
+    "p25": 38087500.0,
+    "median": 91000000.0,
+    "mean": 108445982.14285715,
+    "p75": 150000000.0,
+    "max": 379000000.0,
+    "std": 82788177.86146341,
+    "iqr": 111912500.0
+  },
+  "roi_stats": {},
+  "revenue_outlier_count": 2,
+  "revenue_outliers": [
+    {
+      "movie_id": 299534,
+      "title": "Avengers: Endgame",
+      "revenue": 2942649778.0,
+      "release_year": 2019
+    },
+    {
+      "movie_id": 299536,
+      "title": "Avengers: Infinity War",
+      "revenue": 2052415039.0,
+      "release_year": 2018
+    }
+  ]
+}

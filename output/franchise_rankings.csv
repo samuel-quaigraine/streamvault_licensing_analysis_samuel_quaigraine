@@ -1,0 +1,33 @@
+collection_name,film_count,total_revenue,mean_revenue,median_roi,mean_vote,earliest_release,latest_release,movie_ids,titles
+The Avengers Collection,4,7919284026.0,1979821006.5,6.872545174848485,7.9525,2012,2019,"[24428, 99861, 299534, 299536]","['The Avengers', 'Avengers: Age of Ultron', 'Avengers: Endgame', 'Avengers: Infinity War']"
+Harry Potter Collection,8,7759777709.0,969972213.625,6.1650856164102565,7.825,2001,2011,"[671, 672, 673, 674, 675, 767, 12444, 12445]","[""Harry Potter and the Philosopher's Stone"", 'Harry Potter and the Chamber of Secrets', 'Harry Potter and the Prisoner of Azkaban', 'Harry Potter and the Goblet of Fire', 'Harry Potter and the Order of the Phoenix', 'Harry Potter and the Half-Blood Prince', 'Harry Potter and the Deathly Hallows: Part 1', 'Harry Potter and the Deathly Hallows: Part 2']"
+Pirates of the Caribbean Collection,5,4525525744.0,905105148.8,3.4605317304347825,7.1506,2003,2017,"[22, 58, 285, 1865, 166426]","['Pirates of the Caribbean: The Curse of the Black Pearl', ""Pirates of the Caribbean: Dead Man's Chest"", ""Pirates of the Caribbean: At World's End"", 'Pirates of the Caribbean: On Stranger Tides', 'Pirates of the Caribbean: Dead Men Tell No Tales']"
+Star Wars Collection,6,4432411744.0,738735290.6666666,13.401689870458974,7.527833333333334,1977,2005,"[11, 1891, 1892, 1893, 1894, 1895]","['Star Wars', 'The Empire Strikes Back', 'Return of the Jedi', 'Star Wars: Episode I - The Phantom Menace', 'Star Wars: Episode II - Attack of the Clones', 'Star Wars: Episode III - Revenge of the Sith']"
+Toy Story Collection,4,3039690868.0,759922717.0,5.831314957460318,7.7225,1995,2019,"[862, 863, 10193, 301528]","['Toy Story', 'Toy Story 2', 'Toy Story 3', 'Toy Story 4']"
+Shrek Collection,4,2983130036.0,745782509.0,5.634445137708333,6.9665,2001,2010,"[808, 809, 810, 10192]","['Shrek', 'Shrek 2', 'Shrek the Third', 'Shrek Forever After']"
+The Hobbit Collection,3,2935523356.0,978507785.3333334,3.8336,7.437,2012,2014,"[49051, 57158, 122917]","['The Hobbit: An Unexpected Journey', 'The Hobbit: The Desolation of Smaug', 'The Hobbit: The Battle of the Five Armies']"
+The Lord of the Rings Collection,3,2916544743.0,972181581.0,11.725156962025316,8.469333333333333,2001,2003,"[120, 121, 122]","['The Lord of the Rings: The Fellowship of the Ring', 'The Lord of the Rings: The Two Towers', 'The Lord of the Rings: The Return of the King']"
+Mission: Impossible Collection,5,2779994012.0,555998802.4,4.55144424,6.859,1996,2015,"[954, 955, 956, 56292, 177677]","['Mission: Impossible', 'Mission: Impossible II', 'Mission: Impossible III', 'Mission: Impossible - Ghost Protocol', 'Mission: Impossible - Rogue Nation']"
+The Dark Knight Collection,3,2463740489.0,821246829.6666666,4.324165148,8.011333333333333,2005,2012,"[155, 272, 49026]","['The Dark Knight', 'Batman Begins', 'The Dark Knight Rises']"
+Iron Man Collection,3,2424684758.0,808228252.6666666,4.179815871428572,7.152,2008,2013,"[1726, 10138, 68721]","['Iron Man', 'Iron Man 2', 'Iron Man 3']"
+Jurassic Park Collection,3,2045874038.0,681958012.6666666,8.474506835616438,6.907,1993,2001,"[329, 330, 331]","['Jurassic Park', 'The Lost World: Jurassic Park', 'Jurassic Park III']"
+Indiana Jones Collection,4,1983841081.0,495960270.25,10.887633770833332,7.28075,1981,2008,"[85, 87, 89, 217]","['Raiders of the Lost Ark', 'Indiana Jones and the Temple of Doom', 'Indiana Jones and the Last Crusade', 'Indiana Jones and the Kingdom of the Crystal Skull']"
+Ice Age Collection,3,1930942709.0,643647569.6666666,8.26248445,6.968333333333334,2002,2009,"[425, 950, 8355]","['Ice Age', 'Ice Age: The Meltdown', 'Ice Age: Dawn of the Dinosaurs']"
+The Matrix Collection,3,1627105295.0,542368431.6666666,4.923998006666666,7.3709999999999996,1999,2003,"[603, 604, 605]","['The Matrix', 'The Matrix Reloaded', 'The Matrix Revolutions']"
+The Terminator Collection,4,1402538376.0,350634594.0,3.6258047794117645,7.0504999999999995,1984,2009,"[218, 280, 296, 534]","['The Terminator', 'Terminator 2: Judgment Day', 'Terminator 3: Rise of the Machines', 'Terminator Salvation']"
+Die Hard Collection,4,1130432180.0,282608045.0,3.777222980808081,7.1805,1988,2007,"[562, 1571, 1572, 1573]","['Die Hard', 'Live Free or Die Hard', 'Die Hard: With a Vengeance', 'Die Hard 2']"
+Ocean's Collection,3,1124774054.0,374924684.6666667,3.6625014588235296,6.925999999999999,2001,2007,"[161, 163, 298]","[""Ocean's Eleven"", ""Ocean's Twelve"", ""Ocean's Thirteen""]"
+Back to the Future Collection,3,969485632.0,323161877.3333333,8.321529925,7.87,1985,1990,"[105, 165, 196]","['Back to the Future', 'Back to the Future Part II', 'Back to the Future Part III']"
+The Bourne Collection,3,945358579.0,315119526.3333333,3.84666956,7.426666666666667,2002,2007,"[2501, 2502, 2503]","['The Bourne Identity', 'The Bourne Supremacy', 'The Bourne Ultimatum']"
+The Lion King Collection,1,763455561.0,763455561.0,16.96567913333333,8.25,1994,1994,[8587],['The Lion King']
+"Monsters, Inc. Collection",1,650000000.0,650000000.0,5.0,7.86,2001,2001,[585],"['Monsters, Inc.']"
+The Incredibles Collection,1,631442092.0,631442092.0,6.863501,7.73,2004,2004,[9806],['The Incredibles']
+Alien Collection,4,610021801.0,152505450.25,6.367362768181819,7.17725,1979,1997,"[348, 679, 8077, 8078]","['Alien', 'Aliens', 'Alien³', 'Alien Resurrection']"
+The Smurfs (Theatrical) Collection,1,563749323.0,563749323.0,5.124993845454545,5.753,2011,2011,[41513],['The Smurfs']
+The Godfather Collection,3,484432473.0,161477491.0,7.892307692307693,8.225,1972,1990,"[238, 240, 242]","['The Godfather', 'The Godfather Part II', 'The Godfather Part III']"
+Jaws Collection,1,470653000.0,470653000.0,67.23614285714285,7.687,1975,1975,[578],['Jaws']
+Mad Max Collection,1,378858340.0,378858340.0,2.5257222666666665,7.642,2015,2015,[76341],['Mad Max: Fury Road']
+Kill Bill Collection,2,333065537.0,166532768.5,5.551092283333333,7.9205000000000005,2003,2004,"[24, 393]","['Kill Bill: Vol. 1', 'Kill Bill: Vol. 2']"
+Ghostbusters Collection,1,296640120.0,296640120.0,9.888004,7.496,1984,1984,[620],['Ghostbusters']
+The Hannibal Lecter Collection,1,272742922.0,272742922.0,14.354890631578947,8.346,1991,1991,[274],['The Silence of the Lambs']
+Blade Runner Collection,1,41722424.0,41722424.0,1.4900865714285714,7.937,1982,1982,[78],['Blade Runner']

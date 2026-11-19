@@ -16,6 +16,7 @@ venv/
 # Data files
 *.parquet
 *.xlsx
+data/raw/
 
 # Allow candidate list for reproducibility
 !id_list.csv

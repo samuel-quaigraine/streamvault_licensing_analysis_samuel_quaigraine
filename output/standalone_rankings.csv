@@ -1,0 +1,17 @@
+movie_id,title,original_title,release_date,release_year,era,budget,revenue,runtime,vote_average,vote_count,popularity,status,collection_id,collection_name,is_franchise,genres_count,genre_names,profit,return_on_cost,commercial_tier
+429,"The Good, the Bad and the Ugly","Il buono, il brutto, il cattivo",1966-12-23,1966,Pre-2000,1200000.0,38900000.0,161.0,8.468,10162,18.5304,Released,,,False,1,Western,37700000.0,32.416666666666664,Blockbuster Hit
+680,Pulp Fiction,Pulp Fiction,1994-09-10,1994,Pre-2000,8000000.0,213928762.0,154.0,8.48,31365,29.9996,Released,,,False,3,"Thriller, Crime, Comedy",205928762.0,26.74109525,Blockbuster Hit
+424,Schindler's List,Schindler's List,1993-12-15,1993,Pre-2000,22000000.0,321365567.0,195.0,8.57,18203,22.8137,Released,,,False,3,"Drama, History, War",299365567.0,14.607525772727273,Blockbuster Hit
+129,Spirited Away,千と千尋の神隠し,2001-07-20,2001,2000-Onward,19000000.0,274925095.0,125.0,8.537,19243,49.6655,Released,,,False,3,"Animation, Family, Fantasy",255925095.0,14.469741842105263,Blockbuster Hit
+13,Forrest Gump,Forrest Gump,1994-06-23,1994,Pre-2000,55000000.0,677387716.0,142.0,8.462,30919,29.2116,Released,,,False,3,"Comedy, Drama, Romance",622387716.0,12.316140290909091,Blockbuster Hit
+27205,Inception,Inception,2010-07-15,2010,2000-Onward,160000000.0,839030630.0,148.0,8.373,40769,49.7497,Released,,,False,3,"Action, Science Fiction, Crime",679030630.0,5.2439414375,Blockbuster Hit
+157336,Interstellar,Interstellar,2014-11-04,2014,2000-Onward,165000000.0,746606706.0,169.0,8.5,41950,72.248,Released,,,False,3,"Adventure, Drama, Science Fiction",581606706.0,4.524889127272727,Blockbuster Hit
+77,Memento,Memento,2000-10-11,2000,2000-Onward,9000000.0,40060108.0,113.0,8.175,17065,14.8529,Released,,,False,2,"Mystery, Thriller",31060108.0,4.451123111111111,Blockbuster Hit
+1422,The Departed,The Departed,2006-10-04,2006,2000-Onward,90000000.0,291465000.0,151.0,8.16,16955,18.7587,Released,,,False,3,"Drama, Thriller, Crime",201465000.0,3.2385,Blockbuster Hit
+10681,WALL·E,WALL·E,2008-06-26,2008,2000-Onward,180000000.0,521311860.0,98.0,8.129,21213,19.041,Released,,,False,3,"Animation, Family, Science Fiction",341311860.0,2.896177,Blockbuster Hit
+1124,The Prestige,The Prestige,2006-10-19,2006,2000-Onward,40000000.0,109676311.0,131.0,8.212,18487,18.4127,Released,,,False,3,"Drama, Mystery, Science Fiction",69676311.0,2.741907775,Blockbuster Hit
+111,Scarface,Scarface,1983-12-09,1983,Pre-2000,25000000.0,66023329.0,170.0,8.154,13704,18.4117,Released,,,False,3,"Action, Crime, Drama",41023329.0,2.64093316,Blockbuster Hit
+769,GoodFellas,GoodFellas,1990-09-12,1990,Pre-2000,25000000.0,47072327.0,145.0,8.452,15053,20.3111,Released,,,False,2,"Drama, Crime",22072327.0,1.88289308,Moderate Return
+641,Requiem for a Dream,Requiem for a Dream,2000-10-06,2000,2000-Onward,4500000.0,7390108.0,102.0,8.007,11500,5.3724,Released,,,False,1,Drama,2890108.0,1.6422462222222223,Moderate Return
+550,Fight Club,Fight Club,1999-10-15,1999,Pre-2000,63000000.0,100853753.0,139.0,8.437,33380,36.9333,Released,,,False,2,"Drama, Thriller",37853753.0,1.6008532222222223,Moderate Return
+278,The Shawshank Redemption,The Shawshank Redemption,1994-09-23,1994,Pre-2000,25000000.0,28341469.0,142.0,8.734,31879,45.414,Released,,,False,2,"Drama, Crime",3341469.0,1.13365876,Moderate Return
