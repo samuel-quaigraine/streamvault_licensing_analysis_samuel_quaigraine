@@ -29,6 +29,13 @@ h3lp/
 git_handbook.pdf
 *.pdf
 
+# Private Learning Guide Suite (Local study materials - not for GitHub)
+learning_guide/
+*.aux
+*.log
+*.out
+*.toc
+
 # Operating system
 .DS_Store
 Thumbs.db
