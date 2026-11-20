@@ -117,7 +117,69 @@ else:
 
 ---
 
-## 5. Exploratory Data Profiling & Outlier Mathematics
+## 5. Data Types Used and Architectural Rationale
+
+Every column across the raw, transformed, and analytical layers is assigned an explicit, deliberate data type. Choosing the right data type is not just a formatting detail—it is the first line of defense against silent data corruption, floating-point precision drift, memory bloat, and unexpected pipeline crashes.
+
+### Summary Data Type Ledger
+
+| Entity / Layer | Column Name | Chosen Data Type | Why This Type Was Chosen | Risk Prevented |
+|---|---|---|---|---|
+| **Ingestion** | `raw_id` | `String` (Text) | Preserves untrusted input verbatim before cleaning. | Prevents crashes on blank line 69, `'N/A'`, or `tt0468569`. Prevents pandas from coercing IDs to floats with `NaN`. |
+| **Film Key** | `movie_id` | `Int64` (Integer) | Discrete surrogate primary key from TMDb. | Avoids floating-point precision drift (`155.0`) in dictionary lookups and joins. |
+| **Parent IP** | `collection_id` | `Nullable Int64` | Foreign key referencing parent franchise; null for standalones. | Allows missing values without forcing the whole column to become a float. |
+| **Cast / Crew Keys** | `cast_id`, `crew_id` | `Int64` (Integer) | Discrete surrogate keys for actor and crew credit records. | Ensures deterministic 1-to-many joins between films, cast, and crew. |
+| **Billing Rank** | `cast_order` | `Int32` (Integer) | Discrete ordinal rank (0 = top-billed lead actor, 1 = second, etc.). | Allows exact integer threshold filtering (e.g. `cast_order < 3` for lead stars). |
+| **Calendar Date** | `release_date` | `ISO-8601 String` / `datetime64` | Standard `YYYY-MM-DD` date representation. | Enables chronological sorting, calendar math, and year extraction. |
+| **Release Year** | `release_year` | `Int32` (Integer) | 4-digit calendar year (e.g., `2008`). | High-speed numeric boundary evaluation (`year >= 2000`) in NumPy without repeated date parsing. |
+| **Era Split** | `era` | `Categorical String` | Low-cardinality label (`"Pre-2000"` vs `"2000-Onward"`). | Clear, descriptive dimension matching Finance VP Yaw's audit requirement. |
+| **Money Metrics** | `budget`, `revenue`, `profit` | `Float64` (USD) | Continuous double-precision monetary figures scaling to billions. | Prevents 32-bit integer overflow on $2.8B grosses and supports continuous financial math. |
+| **Efficiency Metric** | `return_on_cost` | `Float64` (Multiple) | Continuous commercial multiple (`Revenue / Budget`). | Captures fractional multiples (e.g., 5.62x vs 3.84x) without integer floor truncation. |
+| **Audience Rating** | `vote_average` | `Float64` (Score) | Continuous rating on a 0.0 to 10.0 scale (e.g., `8.37`). | Preserves fine-grained critical score differences between candidates. |
+| **Rating Volume** | `vote_count` | `Int64` (Count) | Discrete non-negative count of human votes submitted. | Prevents fractional votes; supports exact threshold checks (`vote_count >= 1000`). |
+| **Engagement** | `popularity` | `Float64` (Index) | Continuous decay-weighted engagement metric from TMDb. | Accommodates logarithmic fractional popularity indices. |
+| **Franchise Flag** | `is_franchise` | `Boolean` (`bool`) | Binary True/False flag. | Enables vectorized Boolean masking (`films[films['is_franchise']]`) in NumPy at C-speed. |
+| **Business Tier** | `commercial_tier` | `Categorical String` | Fixed business buckets (`"Blockbuster Hit"`, `"Moderate Return"`, `"Flop / Loss"`). | Human-readable business reporting without fragile numeric code lookups. |
+| **Text Names** | `title`, `name`, `character` | `UTF-8 String` | Variable-length Unicode text. | Preserves international characters (accents, Japanese kanji for *Spirited Away*, non-Latin names) without encoding corruption. |
+
+---
+
+### Detailed Rationale by Layer
+
+#### 1. Ingestion: Why `raw_id` Must Start as a String
+When loading `id_list.csv`, a naive engineer might use `pd.read_csv()` or `int(row)`. This immediately fails in production:
+- **Crash on Format Faults**: Line 69 is an empty string `""`, Line 111 is `'N/A'`, and Line 95 is `'tt0468569'`. Calling `int()` directly crashes with `ValueError: invalid literal for int()`.
+- **The Float Coercion Trap**: In pandas, if an integer column contains missing values, pandas historically converts the entire column to `float64`. As a result, integer ID `155` becomes `155.0`. Floating-point numbers can suffer precision loss at large values and fail exact string or hash-set lookups.
+- **Our Defensive Approach**: We read raw candidate lines as pure strings, strip whitespace, run regex checks (`^tt\d+` for IMDb, `^-?\d+$` for integers), record audit logs for anomalies, and only cast valid entries to `int` once they pass the admission gates.
+
+#### 2. Relational Keys: Why IDs Must Be Pure Integers
+Primary and foreign keys (`movie_id`, `cast_id`, `crew_id`) are stored as discrete 64-bit integers (`Int64`).
+- **Deterministic Joins**: Relational merges between the film table (112 rows) and the cast table (7,827 rows) require exact, zero-tolerance key matching. Floating-point keys can introduce rounding errors where `155.00000000000003 != 155.0`.
+- **Nullable Franchise Keys**: Standalone movies do not belong to a collection. We use pandas' nullable integer type (`pd.Int64Dtype()`) for `collection_id` so missing values remain distinct (`<NA>`) without coercing the entire column into floating-point numbers.
+
+#### 3. Financial Figures: Why Money Is `Float64`
+Production budgets and box office grosses are modeled as `Float64`:
+- **Overflow Prevention**: Top blockbusters like *Avengers: Endgame* gross over $2.80 Billion ($2,800,000,000). Standard 32-bit signed integers overflow at $2.147 Billion (`2^31 - 1`), causing multi-billion-dollar figures to wrap around to negative numbers!
+- **Division Without Floor Truncation**: Calculating commercial return multiples requires dividing revenue by budget (`Revenue / Budget`). In integer arithmetic, `7 / 2 = 3` (truncating 3.5x to 3x). Using `Float64` preserves exact ROI multiples (e.g. 5.62x vs 3.84x).
+- **Vectorized Performance**: NumPy and BLAS libraries are heavily optimized for 64-bit floating-point SIMD vector registers, giving our calculations maximum execution speed.
+
+#### 4. Binary Flags: Why `is_franchise` Is a Native Boolean
+Instead of using strings like `"YES"`/`"NO"` or numbers `1`/`0`, franchise membership is stored as a native Python/NumPy `bool`.
+- **Boolean Masking**: Allows lightning-fast subset filtering:
+  ```python
+  franchises = films[films["is_franchise"]]
+  standalones = films[~films["is_franchise"]]
+  ```
+- **Clarity and Memory**: Booleans consume 1 byte per row, compared to 50+ bytes for string objects, and eliminate ambiguities caused by case mismatches (e.g. `"Yes"` vs `"yes"` vs `"Y"`).
+
+#### 5. Textual Integrity: Why UTF-8 Strings Are Mandatory
+Film titles, character names, and talent credits contain international names and symbols:
+- Examples in our catalog: *千と千尋の神隠し* (*Spirited Away*), French accents, and diverse actor names.
+- Enforcing UTF-8 encoding across all CSV inputs and outputs guarantees that character data renders correctly across all operating systems (Windows, Linux, macOS) without mojibake (garbled characters like `Ã©`).
+
+---
+
+## 6. Exploratory Data Profiling & Outlier Mathematics
 
 Data profiling was executed in [`pipeline/checks.py`](file:///c:/Users/SamuelQuaigraine/workspace2/streamvault_licensing_analysis_samuel_quaigraine/pipeline/checks.py) to inspect distributions and detect disguised nulls.
 
@@ -147,7 +209,7 @@ Two extreme outliers exceeded this fence:
 
 ---
 
-## 6. Table Grain & Preventing Fan-Out Corruption
+## 7. Table Grain & Preventing Fan-Out Corruption
 
 In [`pipeline/validate.py`](file:///c:/Users/SamuelQuaigraine/workspace2/streamvault_licensing_analysis_samuel_quaigraine/pipeline/validate.py), we enforced strict grain discipline:
 - **Films Table**: `# grain: one row per film` (112 rows)
@@ -168,7 +230,7 @@ assert len(merged) == len(films), "Fan-out detected: row count multiplied!"
 
 ---
 
-## 7. How to Run the Diagnosis Script
+## 8. How to Run the Diagnosis Script
 
 Run the standalone diagnosis script from your terminal:
 ```bash
