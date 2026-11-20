@@ -20,7 +20,7 @@ An exhaustive audit of the 127 candidate film identifiers provided for StreamVau
 
 ## Mapping Findings to the 5-Station Factory Line
 
-The anomalies discovered map directly into the defensive stations of the StreamVault factory line (`h3lp/mathematical_formulation_of_the_streamvault_pipeline.md`):
+The anomalies discovered map directly into the defensive stations of the StreamVault factory line ([docs/architecture.md](docs/architecture.md)):
 
 1. **Station 1: The Bouncer (`pipeline/extract.py`)**: Intercepts **F-01** (routes 404s to `dead_ids.json`), **F-02** (dynamically catches blank rows, negative values, and text), **F-03** (resolves IMDb IDs), and **F-04** (drops duplicate admission passes).
 2. **Station 2: The Labeler (`pipeline/transform.py`)**: Unpacks nested JSON into 3 distinct relational grains (`films`, `cast`, `crew`), mathematically preventing a catastrophic $4.7 Trillion revenue fan-out.
@@ -66,8 +66,8 @@ The anomalies discovered map directly into the defensive stations of the StreamV
 - **What it is:** Pre-2000 theatrical gross is unadjusted for ticket inflation, and multi-billion-dollar blockbusters (*Avengers: Endgame* at $2.80B, *Avengers: Infinity War* at $2.05B) skew arithmetic means upward.
 - **How I detected it:** IQR distribution fences in `pipeline/checks.py` and era segmentation in `pipeline/transform.py`.
 - **Scale:** Outlier fence threshold at $1.73B; 41 pre-2000 titles vs 71 post-2000 titles.
-- **Effect on the client's number:** Relying on arithmetic means overstates expected returns ($8.54x mean vs $5.62x median for franchises). Over-indexing on pre-2000 classics invites immediate rejection from Finance VP Yaw.
-- **What I did about it:** Anchored all business recommendations in median returns, and evaluated all portfolio KPIs across both time windows (All-Years vs. 2000-Onward), proving the franchise recommendation never flips ($5.05x vs $3.84x in the modern era).
+- **Effect on the client's number:** Relying on arithmetic means overstates expected returns (8.54x mean vs 5.62x median for franchises). Over-indexing on pre-2000 classics invites immediate rejection from Finance VP Yaw.
+- **What I did about it:** Anchored all business recommendations in median returns, and evaluated all portfolio KPIs across both time windows (All-Years vs. 2000-Onward), proving the franchise recommendation never flips (5.05x vs 3.84x in the modern era).
 - **Residual risk:** Low. The median provides an honest, achievable performance baseline.
 
 ---
@@ -84,4 +84,5 @@ The anomalies discovered map directly into the defensive stations of the StreamV
 
 ## Could not verify
 - **Actual Studio Asking Prices**: TMDb records historical production budgets and worldwide box office grosses, but does not publish current licensing rights costs demanded by distributors. Recommended allocations assume licensing fees scale proportionately with historical commercial value.
+- **Streaming Viewer Completion**: Theatrical box office serves as an objective proxy for broad cultural reach, but does not guarantee repeat home streaming completions. High-grossing spectacle films with low rewatch value could fail to reduce monthly subscriber churn.
 - **Regional Streaming Rights Availability**: Certain titles (e.g. older catalogue entries from Warner Bros or Disney) may have active exclusivity windows with competing streaming platforms that cannot be verified via public API data. Kwame's negotiating team must confirm territory clearance with distributors before signing deal memos.

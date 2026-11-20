@@ -19,7 +19,7 @@ Nobody had cleaned it. If our pipeline silently dropped rows or crashed on malfo
 
 ## 2. How the Candidate List Ingestion & Reconciliation Was Done
 
-The candidate file contains **127 rows** beneath the `tmdb_id` header. The ingestion engine in [`pipeline/load.py`](file:///c:/Users/SamuelQuaigraine/workspace2/streamvault_licensing_analysis_samuel_quaigraine/pipeline/load.py) audits every row sequentially using defensive parsing:
+The candidate file contains **127 rows** beneath the `tmdb_id` header. The ingestion engine in [`pipeline/load.py`](pipeline/load.py) audits every row sequentially using defensive parsing:
 
 ### A. Detecting the Blank Line 69
 - **Problem**: Row 69 of `id_list.csv` contains zero characters (empty newline). A standard `int()` conversion raises `ValueError`, and naive loaders silently drop it.
@@ -83,7 +83,7 @@ The candidate file contains **127 rows** beneath the `tmdb_id` header. The inges
 
 ## 3. How Dead Identifiers (404 Not Found) Were Caught
 
-During API acquisition in [`pipeline/extract.py`](file:///c:/Users/SamuelQuaigraine/workspace2/streamvault_licensing_analysis_samuel_quaigraine/pipeline/extract.py), five IDs failed to resolve on TMDb:
+During API acquisition in [`pipeline/extract.py`](pipeline/extract.py), five IDs failed to resolve on TMDb:
 `[7733901, 8471293, 8471294, 9412887, 9412888]`
 
 ### Code Implementation:
@@ -181,7 +181,7 @@ Film titles, character names, and talent credits contain international names and
 
 ## 6. Exploratory Data Profiling & Outlier Mathematics
 
-Data profiling was executed in [`pipeline/checks.py`](file:///c:/Users/SamuelQuaigraine/workspace2/streamvault_licensing_analysis_samuel_quaigraine/pipeline/checks.py) to inspect distributions and detect disguised nulls.
+Data profiling was executed in [`pipeline/checks.py`](pipeline/checks.py) to inspect distributions and detect disguised nulls.
 
 ### Disguised Nulls ($0 Revenue & Budget)
 In film datasets, unrecorded box office often appears as $0.00 rather than `NaN`.
@@ -217,7 +217,7 @@ Two extreme outliers exceeded this fence:
 
 ## 7. Table Grain & Preventing Fan-Out Corruption
 
-In [`pipeline/validate.py`](file:///c:/Users/SamuelQuaigraine/workspace2/streamvault_licensing_analysis_samuel_quaigraine/pipeline/validate.py), we enforced strict grain discipline:
+In [`pipeline/validate.py`](pipeline/validate.py), we enforced strict grain discipline:
 - **Films Table**: `# grain: one row per film` (112 rows)
 - **Cast Table**: `# grain: one row per film per cast member` (7,827 rows)
 - **Crew Table**: `# grain: one row per film per crew member` (24,932 rows)

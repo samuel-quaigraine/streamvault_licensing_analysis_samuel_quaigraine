@@ -24,7 +24,7 @@ This pipeline provides verifiable, reproducible evidence that resolves the inter
 - **The Recommendation Never Flips**: Across any cutoff year tested between 1990 and 2015, franchises consistently deliver a 1.2x to 1.8x return advantage, completely defusing Finance's skepticism.
 - **Recommended Portfolio Spend**:
   - **70% ($9.8M) on Top Franchise Bundles**: Anchor the catalog with the *Harry Potter Collection* (8 films, $7.8B gross, 6.2x return) and *The Dark Knight Trilogy* (3 films, $2.5B gross, 4.3x return).
-  - **30% ($4.2M) on Top Standalones**: Cherry-pick modern prestige hits: *Inception* (5.2x), *Interstellar* (4.5x), *The Departed* (3.2x), *Memento* (4.5x), and *Spirited Away* (14.5x).
+  - **30% ($4.2M) on Top Standalones**: Cherry-pick modern prestige hits: *Spirited Away* (14.5x), *Inception* (5.2x), *Interstellar* (4.5x), *Memento* (4.5x), and *The Departed* (3.2x).
 
 ---
 
@@ -236,7 +236,7 @@ streamvault_licensing_analysis_samuel_quaigraine/
 
 ---
 
-## 4. Candidate List Reconciliation (127 IDs)
+## 5. Candidate List Reconciliation (127 IDs)
 
 The raw candidate file was assembled over four years from three unverified sources. The pipeline accounts for all 127 rows across 6 clear stages:
 
@@ -251,7 +251,7 @@ The raw candidate file was assembled over four years from three unverified sourc
 
 ---
 
-## 5. Visual Trends & Catalog Analysis
+## 6. Visual Trends & Catalog Analysis
 
 Comprehensive visualizations and executive summaries are maintained in [`docs/visualizations.md`](docs/visualizations.md). Key trends across the 112 verified candidates:
 
@@ -274,7 +274,7 @@ python generate_charts.py
 
 ---
 
-## 6. Getting Started & Reproducibility Guide
+## 7. Getting Started & Reproducibility Guide
 
 ### Prerequisites
 - Python 3.11 or higher
@@ -320,7 +320,7 @@ python generate_charts.py
 > **Data File Gitignore Policy & Cross-Platform Auto-Creation**:
 > In accordance with data engineering best practices, generated datasets (`output/`, `data/processed/`, `data/manifest.csv`) and cached raw payloads (`data/raw/`) are purposefully **gitignored** to prevent repository bloat and ensure code serves as the reproducible source of truth. Only the initial candidate list (`id_list.csv`) is versioned. When `run_pipeline.py` is executed on any operating system (Windows, macOS, or Linux), `pipeline/config.py` automatically creates all required directories dynamically via `Path.mkdir(parents=True, exist_ok=True)`.
 
-## 7. How to Run the Pipeline
+## 8. How to Run the Pipeline
 
 Execute the full end-to-end pipeline with one command:
 ```bash
@@ -333,7 +333,7 @@ To step through the pipeline, data profiling, reconciliation, and KPI comparison
 # Launch Jupyter Notebook:
 jupyter notebook analysis_and_profiling.ipynb
 ```
-*Or simply open [`analysis_and_profiling.ipynb`](file:///c:/Users/SamuelQuaigraine/workspace2/streamvault_licensing_analysis_samuel_quaigraine/analysis_and_profiling.ipynb) directly in VS Code.* Each code cell is accompanied by narrative explanations and includes pre-rendered tables and distribution outputs.
+*Or simply open [`analysis_and_profiling.ipynb`](analysis_and_profiling.ipynb) directly in VS Code.* Each code cell is accompanied by narrative explanations and includes pre-rendered tables and distribution outputs.
 
 ### What happens when you run it:
 1. Audits and reconciles all 127 lines from `id_list.csv`.
@@ -346,7 +346,7 @@ jupyter notebook analysis_and_profiling.ipynb
 
 ---
 
-## 8. How to Use the Executive Strategy Tool
+## 9. How to Use the Executive Strategy Tool
 
 For live executive meetings, use `streamvault_tool.py` to run scenarios instantly:
 
@@ -363,7 +363,7 @@ python streamvault_tool.py --budget 10.0 --franchise-pct 80
 
 ---
 
-## 9. Scalability & Running Next Year's 500 Titles
+## 10. Scalability & Running Next Year's 500 Titles
 
 Next year, when Kwame's analyst Adjoa receives 500 titles:
 1. Replace `id_list.csv` with the new file.
@@ -373,7 +373,7 @@ Next year, when Kwame's analyst Adjoa receives 500 titles:
 
 ---
 
-## 10. Running Automated Tests
+## 11. Running Automated Tests
 
 Run the full automated test suite using `pytest`:
 ```bash
@@ -383,6 +383,6 @@ All tests verify candidate parsing, line 69 empty row handling, grain preservati
 
 ---
 
-## 11. Data Protection & Ethics
+## 12. Data Protection & Ethics
 - Never commit `.env` or API credentials to version control.
 - The pipeline implements polite API access: local disk caching, 0.05s rate-limit delays, session re-use, and automated backoff to respect free public API resources.
