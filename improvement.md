@@ -23,6 +23,7 @@ python streamvault_tool.py --budget 14.0 --franchise-pct 70
 1. **Instant Defense Against Finance**: When Yaw questions the 2000 era boundary in the boardroom, Kwame or Adjoa can show that across every single boundary from 1990 to 2005, the recommendation **never flips**—franchises consistently outperform standalones by 1.2x to 1.8x in median returns. Having this proof pre-computed completely disarms methodological objections.
 2. **Agile Negotiation Leverage**: In studio negotiations, if a distributor demands $6M instead of $4.5M for the *Harry Potter* series, Adjoa can recalculate the remaining standalone budget live during the meeting, identifying exactly which standalone titles must be dropped to accommodate the price change.
 3. **Turnkey Handover for Next Year's 500 Titles**: Adjoa can drop next year's 500-title CSV into the folder and execute the pipeline in seconds on her laptop, with all data cleaning, duplicate handling, and reporting handled automatically.
+4. **The Decision Bridge from Phase 1 to Phase 2**: Serves as the dynamic operational link bridging the Phase 1 External Demand Baseline to Phase 2 live studio contract negotiations. If a studio offers an unexpected licensing package or discount tier, Kwame's team can stress-test the allocation live without waiting days for offline re-analysis.
 
 ## What it cost
 - **Development Investment**: 110 lines of clean, modular Python leveraging vectorized NumPy logic.

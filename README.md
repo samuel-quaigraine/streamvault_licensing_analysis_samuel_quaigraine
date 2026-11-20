@@ -14,6 +14,9 @@ To complicate matters, **Yaw in Finance** distrusts older box office numbers (pr
 
 This pipeline provides verifiable, reproducible evidence that resolves the internal debate across both time windows (**All-Years** and **2000-Onward**), accounts for every candidate title, and delivers actionable shortlists and negotiation levers.
 
+### The Consulting Architecture: Phase 1 External Baseline to Phase 2 Internal Ledger
+In enterprise content consulting, prior to mapping a streaming service's internal subscription revenue, ad tiers, and retention economics, **not guessing is the smartest and most defensible engineering move**. This platform establishes a disciplined **Phase 1 External Demand Baseline** using public theatrical box office and production budgets as an objective market benchmark, while locking `clean_films.csv` strictly at 1 row per film on `movie_id` as an extensible integration hook ready to plug into StreamVault's internal viewer and financial ledger in **Phase 2**.
+
 ---
 
 ## 2. Key Findings & Strategic Recommendation
@@ -31,7 +34,7 @@ This pipeline provides verifiable, reproducible evidence that resolves the inter
 ## 3. System Architecture & Entity-Relationship Model
 
 ### Entity-Relationship Diagram (ERD)
-The data model enforces strict relational grain boundaries. Financial metrics are computed exclusively at the **Film** grain (`# grain: one row per film`) to prevent fan-out multiplication when associating cast and crew records.
+The data model enforces strict relational grain boundaries. Financial metrics are computed exclusively at the **Film** grain (`# grain: one row per film`) to prevent fan-out multiplication when associating cast and crew records, while providing a clean 1-to-1 extension hook on `movie_id` for StreamVault's future internal metrics.
 
 ```mermaid
 erDiagram

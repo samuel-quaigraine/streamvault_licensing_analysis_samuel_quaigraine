@@ -185,3 +185,35 @@ flowchart TD
 - **`crew_name`** (String): Name of the crew member.
 - **`job`** (String): Specific credit (e.g., `"Director"`, `"Screenplay"`, `"Original Music Composer"`).
 - **`department`** (String): Functional department (e.g., `"Directing"`, `"Writing"`).
+
+---
+
+## 4. Two-Phase Enterprise Content Architecture: Pre-Integration Baseline to Internal Ledger Extension
+
+The data platform is intentionally engineered across two distinct commercial phases to mirror real-world consulting practice:
+
+```mermaid
+flowchart LR
+    subgraph Phase 1: Current External Demand Baseline
+        RAW["Raw Candidates (id_list.csv)"] --> FACTORY["5-Station Factory Pipeline"]
+        TMDB["TMDb Public Data (Gross, Budget, Credits)"] --> FACTORY
+        FACTORY --> CLEAN["clean_films.csv (1 row / film on movie_id)"]
+        FACTORY --> SHORTLIST["Strategic Shortlists & 1-Page Memo"]
+    end
+
+    subgraph Phase 2: Future Internal Ledger Extension
+        CLEAN --> JOIN{"safe_merge_one_to_one (on='movie_id')"}
+        INTERNAL["StreamVault Internal Ledger (Cost-per-Stream, Retention Lift, Studio Price Cards)"] --> JOIN
+        JOIN --> COMPOSITE["Blended Commercial P&L Portfolio Model"]
+    end
+```
+
+### Architectural Principles:
+1. **Phase 1 (External Market Demand Baseline)**:
+   - Evaluates historical market demand, capital efficiency (`Revenue / Budget`), and creative talent consistency from public records.
+   - Operates 100% offline from verified JSON disk cache.
+   - Prepares Kwame Boateng with an unbiased, mathematically reconciled allocation strategy for the October 31 board review without fabricating internal streaming economics.
+2. **Phase 2 (Internal Streaming & Deal Ledger Integration)**:
+   - Because `clean_films.csv` strictly enforces `# grain: one row per film` on `movie_id`, it serves as an extensible integration hook.
+   - When internal telemetry (e.g. streaming hours, subscriber retention lift) and studio licensing rate cards are finalized, they join directly via `movie_id` (`validate="one_to_one"`).
+   - Zero refactoring of Station 1 (The Bouncer), Station 2 (The Labeler), or Station 3 (The Quality Filter) is required.

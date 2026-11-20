@@ -67,5 +67,25 @@ Across ~100 films, hundreds of talent names appear only once. A single hit is an
 
 ---
 
-## 6. How This Protects Adjoa Next Year (500 Titles)
-Next year, when the list expands to 500 titles and cast credits grow to over 35,000 rows, the `safe_merge_one_to_one` guard will continuously enforce the boundary. As the catalog quadruples, Adjoa can easily raise the talent threshold from $n \ge 2$ to $n \ge 3$ or $n \ge 4$ titles to maintain high statistical rigor.
+## 6. The Phase 2 Internal Integration Hook (Plugging in StreamVault's Ledger)
+In professional content consulting, an early-stage projection built before sitting down with a client's internal finance or product team has one strict rule: **establish a clean, unbiased external baseline without guessing internal economics**.
+
+Because `clean_films.csv` is locked strictly at `# grain: one row per film` on `movie_id`, it serves as an extensible integration hook for Phase 2:
+- The moment StreamVault's internal data becomes available (e.g., cost-per-stream, subscriber retention lift, or actual studio licensing price tags), it plugs directly into our existing dataset.
+- StreamVault's engineering team can join their internal table straight onto `clean_films.csv` without rewriting or modifying our candidate ingestion, cleaning, deduplication, or grain-validation logic:
+
+```python
+# Phase 2 Extension: Plug internal ledger directly into Phase 1 baseline
+internal_ledger = pd.read_csv("streamvault_internal_metrics.csv")  # e.g., cost_per_stream, retention_lift
+composite_catalog = clean_films.merge(
+    internal_ledger,
+    on="movie_id",
+    how="left",
+    validate="one_to_one"
+)
+```
+
+---
+
+## 7. How This Protects Adjoa Next Year (500 Titles)
+Next year, when the list expands to 500 titles and cast credits grow to over 35,000 rows, the `safe_merge_one_to_one` guard will continuously enforce the boundary. As the catalog quadruples, Adjoa can easily raise the talent threshold from `n >= 2` to `n >= 3` or `n >= 4` titles to maintain high statistical rigor.

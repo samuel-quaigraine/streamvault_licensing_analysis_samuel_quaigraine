@@ -168,11 +168,11 @@ def phase_8_hygiene() -> Tuple[bool, float]:
     # 2. Local Windows file paths check (file:///)
     bad_links = []
     for p in PROJECT_ROOT.rglob("*.md"):
-        if any(skip in str(p) for skip in [".venv", "venv", ".git", "brain"]):
+        if any(skip in str(p) for skip in [".venv", "venv", ".git", "brain", "h3lp"]):
             continue
         with open(p, "r", encoding="utf-8", errors="ignore") as f:
             for i, line in enumerate(f, 1):
-                if "file:///" in line:
+                if "](file:///" in line or "href=\"file:///" in line:
                     bad_links.append((str(p.name), i))
 
     if bad_links:

@@ -27,11 +27,16 @@ We built a flexible, parameterized system in `pipeline/transform.py` (`filter_re
 
 ---
 
-## 3. Defining "Value" Without Internal Streaming Data
-We do not have StreamVault's internal viewer completion or subscriber retention data. To measure title value objectively, we made the conscious architectural choice to use a **disciplined composite of Commercial Return (ROI) and Proven Audience Reach (Box Office Gross + User Vote Volume)**:
+## 3. Defining Value as an External Market Demand Baseline (Pre-Integration Projection)
+In professional content consulting, an early-stage analysis conducted before mapping a client's internal ledger has one strict duty: **establish an unbiased, defensible external baseline without guessing internal economics**.
+
+Because we have not yet sat down with StreamVault's finance and product teams to integrate their internal subscription revenue, ad-tier CPMs, cost-per-stream, or churn mechanics, **not guessing is the smartest and most defensible decision we could make**.
+
+We treat TMDb strictly as an **external demand and commercial risk projection**:
+- **Why Theatrical Box Office and Production Budget (`Revenue / Budget`)?** Theatrical performance provides an objective, audited proxy for broad cultural reach, consumer willingness to pay, and historical downside risk.
 - **Why not User Rating alone?** Relying purely on ratings over-rewards niche cult classics (e.g. high critical acclaim but low commercial draw) that fail to drive broad subscriber adoption.
 - **Why not Total Box Office alone?** Relying purely on raw gross over-rewards massive $250M blockbusters while ignoring capital efficiency and licensing cost bases.
-- **The Balance:** Grounding valuation in median return multiple (`Revenue / Budget`) coupled with audience vote scale provides a robust, reproducible proxy for broad viewer demand without fabricating unmeasured streaming churn metrics.
+- **The Consulting Reality:** We ground valuation in median return multiple coupled with audience vote scale. This delivers an honest, auditable market baseline for Kwame's October 31 board review, while leaving clean hooks to plug in StreamVault's internal viewer completion and retention economics in Phase 2.
 
 ---
 
