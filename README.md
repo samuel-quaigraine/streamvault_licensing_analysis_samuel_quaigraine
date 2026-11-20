@@ -1,107 +1,79 @@
 # StreamVault Content Acquisition & Licensing Analysis
 
-Welcome to the **StreamVault Content Acquisition Pipeline**. This repository contains the complete data engineering workflow, statistical models, and executive decision documentation designed to support **Kwame Boateng, VP of Content Acquisition**, in allocating StreamVault's **$14 Million licensing budget** at the upcoming board review on October 31.
+Welcome to the **StreamVault Content Acquisition Pipeline**. This repository provides an end-to-end data engineering platform, predictive financial models, and board-ready executive documentation to support **Kwame Boateng, VP of Content Acquisition**, in allocating StreamVault's **$14 Million licensing budget** at the October 31 review.
 
 ---
 
-## 1. Executive Summary & Business Challenge
+## 1. Executive Summary & Strategic Verdict
 
-StreamVault licenses older films to complement its original productions. Studios offer content under two commercial models:
-1. **Franchise Bundles**: Studios package entire series together on an "all-or-nothing" basis (e.g., license all eight *Harry Potter* films or none). One faction on Kwame's team believes bundles provide built-in audiences and high subscriber retention.
-2. **Standalone Hits**: Individual blockbuster titles licensed one-by-one. The opposing faction argues that bundles force StreamVault to overpay for weak middle entries and that cherry-picking standalone titles yields superior value.
+StreamVault licenses older catalog films to complement original productions. Studios offer content under two commercial models:
+1. **Franchise Bundles**: "All-or-nothing" packages (e.g. all eight *Harry Potter* films or none).
+2. **Standalone Hits**: Cherry-picked individual blockbuster releases.
 
-To complicate matters, **Yaw in Finance** distrusts older box office numbers (pre-2000) due to historical inflation and differing reporting standards.
+To address skepticism from **Finance VP Yaw** regarding historical ticket inflation, our pipeline evaluates all catalog data across two distinct time windows: **All-Years** and **2000-Onward**.
 
-This pipeline provides verifiable, reproducible evidence that resolves the internal debate across both time windows (**All-Years** and **2000-Onward**), accounts for every candidate title, and delivers actionable shortlists and negotiation levers.
-
-### The Consulting Architecture: Phase 1 External Baseline to Phase 2 Internal Ledger
-In enterprise content consulting, prior to mapping a streaming service's internal subscription revenue, ad tiers, and retention economics, **not guessing is the smartest and most defensible engineering move**. This platform establishes a disciplined **Phase 1 External Demand Baseline** using public theatrical box office and production budgets as an objective market benchmark, while locking `clean_films.csv` strictly at 1 row per film on `movie_id` as an extensible integration hook ready to plug into StreamVault's internal viewer and financial ledger in **Phase 2**.
-
----
-
-## 2. Key Findings & Strategic Recommendation
-
-- **Franchises Win on Commercial Returns**: Franchise bundles outperform standalone films in both time windows:
-  - **All-Years Window**: Franchise median return on cost is **5.6x** versus **3.8x** for standalones.
-  - **2000-Onward Window (Finance View)**: Franchise median return remains higher at **5.1x** versus **3.8x** for standalones.
-- **The Recommendation Never Flips**: Across any cutoff year tested between 1990 and 2015, franchises consistently deliver a 1.2x to 1.8x return advantage, completely defusing Finance's skepticism.
+### Core Decision Findings
+- **Franchises Win Across Both Eras**: Franchise bundles generate a median return of **5.6x** across All-Years (vs. 3.8x for standalones) and **5.1x** in 2000-Onward (vs. 3.8x for standalones).
+- **The Strategic Verdict Never Flips**: Across any cutoff year tested between 1990 and 2015, franchises consistently maintain a 1.2x to 1.8x return advantage with a 95% commercial hit rate, defusing Finance's skepticism.
 - **Recommended Portfolio Spend**:
-  - **70% ($9.8M) on Top Franchise Bundles**: Anchor the catalog with the *Harry Potter Collection* (8 films, $7.8B gross, 6.2x return) and *The Dark Knight Trilogy* (3 films, $2.5B gross, 4.3x return).
+  - **70% ($9.8M) on Top Franchise Bundles**: Secure the *Harry Potter Collection* (8 films, $7.8B gross, 6.2x return) and *The Dark Knight Trilogy* (3 films, $2.5B gross, 4.3x return).
   - **30% ($4.2M) on Top Standalones**: Cherry-pick modern prestige hits: *Spirited Away* (14.5x), *Inception* (5.2x), *Interstellar* (4.5x), *Memento* (4.5x), and *The Departed* (3.2x).
 
+### Enterprise Consulting Architecture (Phase 1 Baseline to Phase 2 Ledger)
+In pre-integration consulting, establishing an objective external benchmark without guessing unverified internal economics protects client leadership. This platform establishes a disciplined **Phase 1 External Demand Baseline** using worldwide box office and production costs, while locking `clean_films.csv` strictly at 1 row per film on `movie_id`—providing a clean 1-to-1 extension hook ready to join StreamVault's internal viewer ledger in **Phase 2** (see [ADR-002](decisions/ADR-002-table-grain-and-join-strategy.md)).
+
 ---
 
-## 3. System Architecture & Entity-Relationship Model
+## 2. Getting Started & Reproducibility Guide
 
-### Entity-Relationship Diagram (ERD)
-The data model enforces strict relational grain boundaries. Financial metrics are computed exclusively at the **Film** grain (`# grain: one row per film`) to prevent fan-out multiplication when associating cast and crew records, while providing a clean 1-to-1 extension hook on `movie_id` for StreamVault's future internal metrics.
+### Prerequisites
+- Python 3.11+
+- Git
 
-```mermaid
-erDiagram
-    CANDIDATE_LIST ||--o| FILM : "reconciles to"
-    FILM ||--o| COLLECTION : "belongs to (optional)"
-    FILM ||--|{ FILM_GENRE : "categorized by"
-    FILM ||--|{ FILM_CAST : "features (1-to-many)"
-    FILM ||--|{ FILM_CREW : "directed/written by (1-to-many)"
-    
-    CANDIDATE_LIST {
-        int line_number "1 to 127 (line 69 is empty)"
-        string raw_id "Value as provided in CSV"
-        string status "VALID, DUPLICATE, EXCLUDED, EXTERNAL_FORMAT"
-        string reason "Explanation for exclusion or duplicate"
-    }
+### Quickstart Setup
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd streamvault_licensing_analysis_samuel_quaigraine
 
-    FILM {
-        int movie_id PK "TMDb unique integer identifier"
-        string title "Canonical release title"
-        date release_date "Theatrical release date (YYYY-MM-DD)"
-        int release_year "Derived release year"
-        string era "Pre-2000 vs 2000-Onward"
-        float budget "Production budget in USD"
-        float revenue "Worldwide box office gross in USD"
-        float return_on_cost "Revenue / Budget multiple"
-        float profit "Revenue - Budget in USD"
-        float vote_average "Audience rating score (0.0 - 10.0)"
-        int vote_count "Number of audience ratings"
-        int collection_id FK "Nullable collection identifier"
-        string collection_name "Franchise title if member"
-        boolean is_franchise "True if part of a collection"
-        string commercial_tier "Blockbuster Hit, Moderate Return, Flop / Loss"
-    }
+# 2. Set up virtual environment
+python -m venv .venv
+source .venv/bin/activate       # On Linux/macOS
+.venv\Scripts\Activate.ps1      # On Windows PowerShell
 
-    COLLECTION {
-        int collection_id PK "TMDb collection identifier"
-        string collection_name "Franchise name"
-        int film_count "Verified films in candidate catalog"
-        float total_revenue "Aggregate franchise gross USD"
-        float median_return_on_cost "Median return multiple"
-    }
+# 3. Install dependencies
+pip install -r requirements.txt
 
-    FILM_GENRE {
-        int movie_id FK "Film identifier"
-        int genre_id PK "Genre identifier"
-        string genre_name "Genre label (e.g. Action, Drama, Sci-Fi)"
-    }
-
-    FILM_CAST {
-        int movie_id FK "Film identifier"
-        int cast_id PK "TMDb cast credit identifier"
-        string actor_name "Actor / Actress name"
-        string character_name "Character portrayed"
-        int cast_order "Billing order (0 = Lead Actor)"
-    }
-
-    FILM_CREW {
-        int movie_id FK "Film identifier"
-        int crew_id PK "TMDb crew credit identifier"
-        string crew_name "Crew member name"
-        string job "Role (e.g. Director, Screenplay)"
-        string department "Department (e.g. Directing, Writing)"
-    }
+# 4. Set up credentials
+cp .env.example .env            # Add your free TMDb API key/token to .env
 ```
 
-### End-to-End Pipeline Architecture Flowchart
-The pipeline decouples network acquisition from local compute, caches raw API payloads to disk, and enforces automated validation gates at every stage:
+### One-Command Master Execution (8-Phase Test & Pipeline Battery)
+Run the entire platform end-to-end (pre-flight checks, 26 unit tests, ETL pipeline, data diagnosis, scalability benchmark, strategy CLI, chart generation, and repository hygiene audit):
+```bash
+# Cross-Platform Python runner:
+python run_all.py
+
+# Or native OS shell runners:
+./run_all.sh       # Linux / macOS / Git Bash
+.\run_all.ps1      # Windows PowerShell
+run_all.bat        # Windows Command Prompt
+```
+
+### Key Execution Entrypoints
+| Goal | Command | Description |
+|---|---|---|
+| **Master Battery** | `python run_all.py` | Runs all 8 phases and prints benchmark report (<50s total runtime). |
+| **ETL Pipeline** | `python run_pipeline.py` | Runs 6-stage ETL factory line, outputting clean datasets to `output/`. |
+| **Interactive CLI** | `python streamvault_tool.py --sensitivity` | Live era sensitivity and portfolio budget allocation simulator. |
+| **Interactive Notebook** | `jupyter notebook analysis_and_profiling.ipynb` | Cell-by-cell exploratory data analysis and profiling walkthrough. |
+| **Automated Tests** | `python -m pytest tests/ -v` | Runs the complete 26-test automated verification suite. |
+
+---
+
+## 3. End-to-End Pipeline Architecture
+
+The pipeline decouples network acquisition from local compute, caches raw API payloads to disk for 100% offline reproducibility, and enforces automated validation gates at every factory station. For the full relational Entity-Relationship Diagram (ERD) and data dictionary, see [docs/architecture.md](docs/architecture.md).
 
 ```mermaid
 flowchart TD
@@ -167,256 +139,93 @@ flowchart TD
 
 ---
 
-## 4. Project Structure & Deliverables
+## 4. Candidate List Reconciliation (127 IDs)
 
-```
-streamvault_licensing_analysis_samuel_quaigraine/
-├── .env.example                      # Template for TMDB API credentials
-├── .gitattributes                    # Enforces cross-platform line endings
-├── .gitignore                        # Protects secrets, cache, and raw files
-├── id_list.csv                       # The 127 raw candidate identifiers provided
-├── requirements.txt                  # Python dependencies
-├── README.md                         # This guide
-│
-├── pipeline/                         # Modular ETL Pipeline Package
-│   ├── __init__.py                   # Package marker
-│   ├── config.py                     # API configuration, thresholds, and dynamic directory auto-creation
-│   ├── extract.py                    # ETL Extract: Candidate CSV extraction (The Bouncer) + TMDb API extraction
-│   ├── validate.py                   # ETL Validate: 1-to-1 merge integrity guards and grain referential checks
-│   ├── transform.py                  # ETL Transform: 3-grain flattening, franchise tagging, $0 money filtering, KPIs
-│   ├── checks.py                     # ETL Checks: Pre-load QA gate (conservation: 127 = 112 + 15), profiling, spot-check
-│   └── load.py                       # ETL Load: Atomic table publishing (write_table_atomically) with SHA-256 hashes
-│
-├── data/
-│   ├── raw/                          # Cached API JSON responses (gitignored)
-│   ├── manifest.csv                  # Timestamped record of every API query
-│   └── processed/                    # Clean analytical datasets (films, cast, crew)
-│
-├── decisions/                        # Architecture Decision Records (house format)
-│   ├── ADR-001-candidate-id-reconciliation.md
-│   ├── ADR-002-table-grain-and-join-strategy.md
-│   ├── ADR-003-zero-revenue-handling.md
-│   ├── ADR-004-two-window-era-split.md
-│   └── ADR-005-vectorization-and-scale.md
-│
-├── diagnosis/                        # Standalone Data Diagnosis & Audit Suite
-│   ├── README.md                     # Complete audit methodology & reproducible code
-│   └── diagnose.py                   # Automated reconciliation and zero-revenue audit
-│
-├── docs/                             # Architecture & Visual Trend Documentation
-│   ├── architecture.md               # Mermaid ERD, Flowchart, and Data Dictionary
-│   ├── visualizations.md             # In-depth executive visual trend analysis
-│   └── images/                       # Generated publication-quality trend charts
-│       ├── era_trends_box_office.png
-│       ├── franchise_vs_standalone_roi.png
-│       ├── top_franchises_revenue.png
-│       ├── budget_vs_revenue_multiples.png
-│       └── ratings_vs_return.png
-│
-├── output/                           # Deliverable Data Exports & Audit Artifacts
-│   ├── clean_films.csv               # 112 verified titles at film grain
-│   ├── clean_cast.csv                # 7,827 cast member credits
-│   ├── clean_crew.csv                # 24,932 crew member credits
-│   ├── summary_kpis.csv              # Dual-window comparative KPIs
-│   ├── franchise_rankings.csv        # Top franchise collections by revenue
-│   ├── standalone_rankings.csv       # Top standalone acquisitions by ROI
-│   ├── candidate_reconciliation.csv  # 127-line audit ledger
-│   └── profiling_summary.json        # Schema, null, and financial summary
-│
-├── tests/                            # Automated test suite (26 tests, pytest)
-│   ├── test_loader.py                # Candidate audit and line 69 assertions (4 tests)
-│   ├── test_transform.py             # Grain invariants and financial calculations (5 tests)
-│   ├── test_validate.py              # Join integrity and fan-out guards (4 tests)
-│   ├── test_scale.py                 # Scalability, vectorization & 500-title benchmarks (5 tests)
-│   ├── test_tool.py                  # Executive scenario CLI & sensitivity tables (4 tests)
-│   └── test_pipeline_e2e.py          # Full pipeline offline integration & artifact assertions (4 tests)
-│
-├── run_pipeline.py                   # Master script executing pipeline end-to-end
-├── run_all.py                        # Master test & execution orchestrator (8 phases)
-├── run_all.sh                        # Shell runner for Linux / macOS / Git Bash
-├── run_all.ps1                       # PowerShell runner for Windows
-├── run_all.bat                       # Command Prompt batch runner for Windows
-├── evaluate_scale.py                 # Compute benchmark & 500-title scale test
-├── streamvault_tool.py               # Interactive scenario CLI (Deliverable 5)
-├── generate_charts.py                # Visual trend chart generation script
-│
-├── data_findings.md                  # Deliverable 1: Data diagnosis & reconciliation
-├── client_memo.md                    # Deliverable 4: 1-page executive memo to Kwame
-└── improvement.md                    # Deliverable 5: Improvement beyond the brief
-```
-
----
-
-## 5. Candidate List Reconciliation (127 IDs)
-
-The raw candidate file was assembled over four years from three unverified sources. The pipeline accounts for all 127 rows across 6 clear stages:
+The raw candidate list was compiled over four years from three unverified sources. The pipeline defensively audits all 127 lines across 6 mathematically closed stages:
 
 | Stage | Rows Remaining | Delta | What Happened |
-|---|---|---|---|
+|---|:---:|:---:|---|
 | **1. Raw CSV Input** | **127** | 0 | The starting candidate list from `id_list.csv`. |
-| **2. Format Validation** | **124** | -3 | Line 69 was completely blank; line 30 contained `-1`; line 111 contained the text `'N/A'`. All logged and excluded. |
-| **3. External Format** | **123** | -1 | Line 95 contained IMDb ID `tt0468569` (*The Dark Knight*). Resolved to TMDb ID `155`, which was already in the list. |
+| **2. Format Validation** | **124** | -3 | Line 69 was completely blank; line 30 contained `-1`; line 111 contained text `'N/A'`. All logged and excluded. |
+| **3. External Format** | **123** | -1 | Line 95 contained IMDb ID `tt0468569` (*The Dark Knight*). Resolved to TMDb ID `155`, already in list. |
 | **4. Deduplication** | **117** | -6 | Removed exact repeated entries: `155`, `278`, `550`, `603`, `680`, `1891`. |
 | **5. Live Catalog 404s** | **112** | -5 | Five obsolete IDs no longer exist on TMDb (`7733901`, `8471293`, `8471294`, `9412887`, `9412888`). |
 | **6. Final Verified Catalog** | **112** | 0 | Exactly 112 commercial titles verified and incorporated into analysis. |
 
 ---
 
-## 6. Visual Trends & Catalog Analysis
+## 5. Visual Trends & Catalog Insights
 
-Comprehensive visualizations and executive summaries are maintained in [`docs/visualizations.md`](docs/visualizations.md). Key trends across the 112 verified candidates:
+Key commercial trends across the 112 verified titles (detailed executive narrative in [docs/visualizations.md](docs/visualizations.md)):
 
-### Era Trends & Franchise Commercial Returns
-| Era Box Office Volume & Budgets | Franchise vs. Standalone Commercial ROI |
-|---|---|
-| ![Era Trends](docs/images/era_trends_box_office.png) | ![Franchise vs Standalone](docs/images/franchise_vs_standalone_roi.png) |
-| *Modern titles dominate aggregate box office volume, while pre-2000 titles retain high capital efficiency.* | *Franchise bundles show higher median returns (5.62x vs 3.84x) and tighter risk distributions.* |
+| Era Trends & Budgets | Franchise vs. Standalone ROI | Top Franchise Gross Volume |
+|:---:|:---:|:---:|
+| ![Era Trends](docs/images/era_trends_box_office.png) | ![Franchise vs Standalone](docs/images/franchise_vs_standalone_roi.png) | ![Top Franchises](docs/images/top_franchises_revenue.png) |
+| *Modern titles dominate volume; older titles show high efficiency.* | *Franchises provide higher median returns (5.62x vs 3.84x) and a tighter floor.* | *Top franchise ecosystems account for >$30B cumulative box office.* |
 
-### Ecosystem Volume, Multiples & Audience Ratings
-| Top Franchise Gross Revenue | Budget vs. Revenue Multiples | Ratings vs. Commercial Return |
-|---|---|---|
-| ![Top Franchises](docs/images/top_franchises_revenue.png) | ![Budget Multiples](docs/images/budget_vs_revenue_multiples.png) | ![Ratings vs Return](docs/images/ratings_vs_return.png) |
-| *Top 5 universes account for >$30B gross.* | *Highest multiples cluster in $30M–$150M tiers.* | *High ratings (>7.5) consistently protect capital.* |
+| Budget vs. Revenue Multiples | Ratings vs. Commercial Return |
+|:---:|:---:|
+| ![Budget Multiples](docs/images/budget_vs_revenue_multiples.png) | ![Ratings vs Return](docs/images/ratings_vs_return.png) |
+| *Highest commercial multiples cluster in $30M–$150M budget tiers.* | *High audience ratings (>7.5) consistently protect capital downside.* |
 
-To re-generate all charts at any time:
-```bash
-python generate_charts.py
+*Re-generate all publication-quality charts:* `python generate_charts.py`
+
+---
+
+## 6. Project Structure & Deliverables
+
+```
+streamvault_licensing_analysis_samuel_quaigraine/
+├── client_memo.md                    # Deliverable 4: Strict 1-page executive memo to Kwame (516 words)
+├── data_findings.md                  # Deliverable 1: Data diagnosis, anomalies, and risk ranking
+├── improvement.md                    # Deliverable 5: Live scenario tool & sensitivity analysis
+├── run_pipeline.py                   # Deliverable 2: End-to-end master ETL pipeline script
+├── run_all.py                        # Master 8-phase test & execution battery runner
+├── streamvault_tool.py               # Interactive CLI for era sensitivity and portfolio simulation
+├── evaluate_scale.py                 # Compute benchmark & 500-title scale test
+├── generate_charts.py                # Visual trend chart generation script
+│
+├── decisions/                        # Deliverable 3: Architecture Decision Records (ADRs)
+│   ├── ADR-001-candidate-id-reconciliation.md   # Step 1: Candidate Ingestion & Bouncer
+│   ├── ADR-002-table-grain-and-join-strategy.md   # Step 2: Relational Grain & Phase 2 Hook
+│   ├── ADR-003-zero-revenue-handling.md           # Step 3: Financial Cleaning & Blind Spots
+│   ├── ADR-004-two-window-era-split.md            # Step 4: Era Split & Shortlists
+│   └── ADR-005-vectorization-and-scale.md         # Step 5: Vectorization & Scale
+│
+├── pipeline/                         # Modular ETL Engine Package
+│   ├── config.py, extract.py, transform.py, validate.py, checks.py, load.py
+│
+├── output/                           # Deliverable Data Exports & Audited Tables
+│   ├── clean_films.csv, clean_cast.csv, clean_crew.csv, summary_kpis.csv,
+│   └── franchise_rankings.csv, standalone_rankings.csv, candidate_reconciliation.csv
+│
+├── docs/                             # Architecture & Visual Reports
+│   ├── architecture.md, visualizations.md, images/
+│
+└── tests/                            # 26 Automated Tests across 6 Modules (pytest)
 ```
 
 ---
 
-## 7. Getting Started & Reproducibility Guide
+## 7. Automated Testing & Scalability
 
-### Prerequisites
-- Python 3.11 or higher
-- Git
+### Test Suite (26 Automated Tests, 100% Passing)
+Execute tests with `python -m pytest tests/ -v`:
+- **`tests/test_loader.py` (4 tests)**: Verifies 127 raw lines, line 69 empty detection, negative IDs, `'N/A'`, IMDb ID, and duplicates.
+- **`tests/test_transform.py` (5 tests)**: Verifies 1-row-per-film grain, $0 financial filtering, dual-window KPIs, whole-bundle rankings with `min_roi` weakest-link floors, and the $n \ge 2$ talent fairness filter.
+- **`tests/test_validate.py` (4 tests)**: Verifies `safe_merge_one_to_one` guards and row conservation QA gates ($127 = 112 + 15$).
+- **`tests/test_scale.py` (5 tests)**: Asserts NumPy vectorization is $\ge 10\times$ faster than row loops, 500 titles run in $<50\text{ ms}$, and verifies linear $O(N)$ complexity up to 5,000 titles.
+- **`tests/test_tool.py` (4 tests)**: Verifies sensitivity tables across all 6 era years (1990–2015), portfolio budget allocations, and CLI flags.
+- **`tests/test_pipeline_e2e.py` (4 tests)**: Validates complete offline pipeline execution and asserts all 8 deliverable outputs exist with exact row counts.
 
-### Installation
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd streamvault_licensing_analysis_samuel_quaigraine
-   ```
-
-2. **Set up a virtual environment:**
-   ```bash
-   python -m venv .venv
-
-   # Activate on Windows PowerShell:
-   .venv\Scripts\Activate.ps1
-
-   # Activate on macOS/Linux:
-   source .venv/bin/activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure your TMDb API key:**
-   Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-   Open `.env` and add your free TMDb API key or Read Access Token:
-   ```env
-   TMDB_API_KEY=your_actual_tmdb_api_key_here
-   TMDB_API_READ_ACCESS_TOKEN=your_actual_token_here
-   ```
-
-5. **Run the Full Suite with One Command**:
-   Execute the complete 8-phase battery (pre-flight checks, 26 automated tests, ETL pipeline, data diagnosis, scalability benchmark, strategy CLI, visual charts, and repository hygiene gate):
-   ```bash
-   # On macOS / Linux / Git Bash:
-   ./run_all.sh
-
-   # On Windows PowerShell:
-   .\run_all.ps1
-
-   # On Windows Command Prompt:
-   run_all.bat
-
-   # Cross-platform Python runner:
-   python run_all.py
-   ```
+### Scalability to 500 Titles (Next Year's Catalog)
+When Kwame's analyst Adjoa receives next year's 500 titles:
+1. Replace `id_list.csv` with the new file and run `python run_pipeline.py`.
+2. Compute benchmarks in `evaluate_scale.py` prove that feature engineering and dual-window KPI aggregation run in **< 25 ms** for 500 titles, comfortably meeting real-time requirements on Adjoa's laptop.
 
 ---
 
-> [!NOTE]
-> **Data File Gitignore Policy & Cross-Platform Auto-Creation**:
-> In accordance with data engineering best practices, generated datasets (`output/`, `data/processed/`, `data/manifest.csv`) and cached raw payloads (`data/raw/`) are purposefully **gitignored** to prevent repository bloat and ensure code serves as the reproducible source of truth. Only the initial candidate list (`id_list.csv`) is versioned. When `run_pipeline.py` is executed on any operating system (Windows, macOS, or Linux), `pipeline/config.py` automatically creates all required directories dynamically via `Path.mkdir(parents=True, exist_ok=True)`.
-
-## 8. How to Run the Pipeline
-
-Execute the full end-to-end pipeline with one command:
-```bash
-python run_pipeline.py
-```
-
-### Interactive Notebook (`analysis_and_profiling.ipynb`)
-To step through the pipeline, data profiling, reconciliation, and KPI comparisons interactively cell-by-cell:
-```bash
-# Launch Jupyter Notebook:
-jupyter notebook analysis_and_profiling.ipynb
-```
-*Or simply open [`analysis_and_profiling.ipynb`](analysis_and_profiling.ipynb) directly in VS Code.* Each code cell is accompanied by narrative explanations and includes pre-rendered tables and distribution outputs.
-
-### What happens when you run it:
-1. Audits and reconciles all 127 lines from `id_list.csv`.
-2. Fetches details and credits from TMDb. Raw responses are cached in `data/raw/` so future runs are **100% offline** and finish in under 1 second.
-3. Flattens JSON into three separate tables with strict grains (`films`, `cast`, `crew`), preventing accidental duplicate counting.
-4. Validates table joins with assertions to prevent row fan-outs.
-5. Runs data profiling and computes KPIs for both time windows.
-6. Executes a live 4-slice spot-check against TMDb to verify data integrity.
-7. Saves clean datasets in `data/processed/`.
-
----
-
-## 9. How to Use the Executive Strategy Tool
-
-For live executive meetings, use `streamvault_tool.py` to run scenarios instantly:
-
-```bash
-# 1. Show sensitivity table across era cutoffs (1990 to 2015):
-python streamvault_tool.py --sensitivity
-
-# 2. Simulate custom budget allocations ($14M budget, 70% to franchises):
-python streamvault_tool.py --budget 14.0 --franchise-pct 70
-
-# 3. Test a smaller $10M budget with an 80% franchise focus:
-python streamvault_tool.py --budget 10.0 --franchise-pct 80
-```
-
----
-
-## 10. Scalability & Running Next Year's 500 Titles
-
-Next year, when Kwame's analyst Adjoa receives 500 titles:
-1. Replace `id_list.csv` with the new file.
-2. Run `python run_pipeline.py`.
-3. The pipeline will automatically audit the new IDs, fetch missing titles, cache them, enforce grains, and recalculate all recommendations.
-4. Run `python evaluate_scale.py` to benchmark performance across 127, 500, and 5,000 titles. Benchmarks demonstrate that computation scales in under 25 milliseconds.
-
----
-
-## 11. Running Automated Tests
-
-Run the complete automated test suite (26 tests) using `pytest`:
-```bash
-python -m pytest tests/ -v
-```
-
-### Test Suite Architecture (26 Automated Tests across 6 Modules):
-1. **`tests/test_loader.py` (4 tests)**: Verifies 127 candidate lines, explicit empty line 69 detection, negative ID `-1`, string `'N/A'`, IMDb ID `tt0468569`, and 6 exact duplicates.
-2. **`tests/test_transform.py` (5 tests)**: Verifies `# grain: one row per film` uniqueness, parameterized $0 revenue filtering, dual-window KPI calculations, whole-bundle rankings with `min_roi` weakest-link floors, and the fairness talent threshold (minimum $\ge 2$ appearances).
-3. **`tests/test_validate.py` (4 tests)**: Verifies `safe_merge_one_to_one` guards, detects simulated fan-out multipliers, and tests row conservation pre-load QA gates ($127 = 112 + 15$).
-4. **`tests/test_scale.py` (5 tests)**: Asserts that vectorized NumPy is $\ge 10\times$ faster than row-wise `apply(axis=1)`, proves next year's 500-title workload runs in $<50\text{ ms}$ CPU time, validates $O(N)$ linear complexity up to 5,000 titles ($<250\text{ ms}$), and verifies memory consumption $<15\text{ MB}$.
-5. **`tests/test_tool.py` (4 tests)**: Verifies the sensitivity cutoff table across all 6 era years (1990 to 2015), tests $14M 70/30 portfolio allocations ($9.80M / $4.20M), custom allocations, and CLI flag executions.
-6. **`tests/test_pipeline_e2e.py` (4 tests)**: Verifies complete offline pipeline execution, asserts all 8 deliverable output files exist in `output/` with valid row counts (112 films, 7,827 cast, 24,932 crew, 6-stage reconciliation summary), and validates 0 disguised nulls in `output/profiling_summary.json`.
-
----
-
-## 12. Data Protection & Ethics
-- Never commit `.env` or API credentials to version control.
-- The pipeline implements polite API access: local disk caching, 0.05s rate-limit delays, session re-use, and automated backoff to respect free public API resources.
+## 8. Data Protection & Governance
+- **API Secrets**: Credentials in `.env` are strictly gitignored and never committed.
+- **Polite API Access**: Local caching in `data/raw/`, 0.05s rate-limit delays, session reuse, and automatic exponential backoff.
+- **Atomic Loading**: Datasets in `output/` are written atomically via temporary staging files and fingerprinted with SHA-256 hashes to guarantee data consistency.
