@@ -83,7 +83,7 @@ The pipeline decouples network acquisition from local computation, guarantees id
 ```mermaid
 flowchart TD
     subgraph Inputs & Configuration
-        ENV[".env / .env.example"] --> CFG["pipeline/config.py"]
+        ENV[".env / .example.env"] --> CFG["pipeline/config.py"]
         CSV["id_list.csv (127 lines)"] --> LOAD["pipeline/load.py"]
         CFG --> LOAD
     end
