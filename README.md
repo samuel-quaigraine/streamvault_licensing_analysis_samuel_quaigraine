@@ -7,19 +7,22 @@ Welcome to the **StreamVault Content Acquisition Pipeline**. This repository pro
 ## 1. Executive Summary & Strategic Verdict
 
 StreamVault licenses older catalog films to complement original productions. Studios offer content under two commercial models:
-1. **Franchise Bundles**: "All-or-nothing" packages (e.g. all eight *Harry Potter* films or none).
+
+1. **Franchise Bundles**: "All-or-nothing" packages (e.g. all eight _Harry Potter_ films or none).
 2. **Standalone Hits**: Cherry-picked individual blockbuster releases.
 
 To address skepticism from **Finance VP Yaw** regarding historical ticket inflation, our pipeline evaluates all catalog data across two distinct time windows: **All-Years** and **2000-Onward**.
 
 ### Core Decision Findings
+
 - **Franchises Win Across Both Eras**: Franchise bundles generate a median return of **5.6x** across All-Years (vs. 3.8x for standalones) and **5.1x** in 2000-Onward (vs. 3.8x for standalones).
 - **The Strategic Verdict Never Flips**: Across any cutoff year tested between 1990 and 2015, franchises consistently maintain a 1.2x to 1.8x return advantage with a 95% commercial hit rate, defusing Finance's skepticism.
 - **Recommended Portfolio Spend**:
-  - **70% ($9.8M) on Top Franchise Bundles**: Secure the *Harry Potter Collection* (8 films, $7.8B gross, 6.2x return) and *The Dark Knight Trilogy* (3 films, $2.5B gross, 4.3x return).
-  - **30% ($4.2M) on Top Standalones**: Cherry-pick modern prestige hits: *Spirited Away* (14.5x), *Inception* (5.2x), *Interstellar* (4.5x), *Memento* (4.5x), and *The Departed* (3.2x).
+  - **70% ($9.8M) on Top Franchise Bundles**: Secure the _Harry Potter Collection_ (8 films, $7.8B gross, 6.2x return) and _The Dark Knight Trilogy_ (3 films, $2.5B gross, 4.3x return).
+  - **30% ($4.2M) on Top Standalones**: Cherry-pick modern prestige hits: _Spirited Away_ (14.5x), _Inception_ (5.2x), _Interstellar_ (4.5x), _Memento_ (4.5x), and _The Departed_ (3.2x).
 
 ### Enterprise Consulting Architecture (Phase 1 Baseline to Phase 2 Ledger)
+
 In pre-integration consulting, establishing an objective external benchmark without guessing unverified internal economics protects client leadership. This platform establishes a disciplined **Phase 1 External Demand Baseline** using worldwide box office and production costs, while locking `clean_films.csv` strictly at 1 row per film on `movie_id`—providing a clean 1-to-1 extension hook ready to join StreamVault's internal viewer ledger in **Phase 2** (see [ADR-002](decisions/ADR-002-table-grain-and-join-strategy.md)).
 
 ---
@@ -27,29 +30,53 @@ In pre-integration consulting, establishing an objective external benchmark with
 ## 2. Getting Started & Reproducibility Guide
 
 ### Prerequisites
+
 - Python 3.11+
 - Git
 
 ### Quickstart Setup
+
+#### 1. Clone the repository
 ```bash
-# 1. Clone the repository
 git clone <repository-url>
 cd streamvault_licensing_analysis_samuel_quaigraine
-
-# 2. Set up virtual environment
-python -m venv .venv
-source .venv/bin/activate       # On Linux/macOS
-.venv\Scripts\Activate.ps1      # On Windows PowerShell
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Set up credentials
-cp .env.example .env            # Add your free TMDb API key/token to .env
 ```
 
+#### 2. Create and activate a virtual environment
+Accounting for your operating system and shell:
+
+| Operating System / Shell | Virtual Environment & Activation Commands |
+|---|---|
+| **Linux / macOS (bash/zsh)** | `python3 -m venv .venv && source .venv/bin/activate` |
+| **Windows PowerShell** | `python -m venv .venv; .venv\Scripts\Activate.ps1` |
+| **Windows Command Prompt (cmd)** | `python -m venv .venv && .venv\Scripts\activate.bat` |
+| **Windows Git Bash / MSYS2** | `python -m venv .venv && source .venv/Scripts/activate` |
+
+> [!TIP]
+> **Windows PowerShell Execution Policy**:
+> If Windows blocks script execution with `cannot be loaded because running scripts is disabled`, allow it for the active session:
+> ```powershell
+> Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+> .venv\Scripts\Activate.ps1
+> ```
+> Alternatively, invoke the batch activator directly: `.venv\Scripts\activate`
+
+#### 3. Install dependencies & configure credentials
+```bash
+# Install dependencies into active environment
+python -m pip install -r requirements.txt
+
+# Copy environment template
+cp .env.example .env            # macOS / Linux / Git Bash
+copy .env.example .env          # Windows Command Prompt
+Copy-Item .env.example .env     # Windows PowerShell
+```
+Open `.env` and add your free TMDb API key or Read Access Token.
+
 ### One-Command Master Execution (8-Phase Test & Pipeline Battery)
+
 Run the entire platform end-to-end (pre-flight checks, 26 unit tests, ETL pipeline, data diagnosis, scalability benchmark, strategy CLI, chart generation, and repository hygiene audit):
+
 ```bash
 # Cross-Platform Python runner:
 python run_all.py
@@ -61,13 +88,14 @@ run_all.bat        # Windows Command Prompt
 ```
 
 ### Key Execution Entrypoints
-| Goal | Command | Description |
-|---|---|---|
-| **Master Battery** | `python run_all.py` | Runs all 8 phases and prints benchmark report (<50s total runtime). |
-| **ETL Pipeline** | `python run_pipeline.py` | Runs 6-stage ETL factory line, outputting clean datasets to `output/`. |
-| **Interactive CLI** | `python streamvault_tool.py --sensitivity` | Live era sensitivity and portfolio budget allocation simulator. |
-| **Interactive Notebook** | `jupyter notebook analysis_and_profiling.ipynb` | Cell-by-cell exploratory data analysis and profiling walkthrough. |
-| **Automated Tests** | `python -m pytest tests/ -v` | Runs the complete 26-test automated verification suite. |
+
+| Goal                     | Command                                         | Description                                                            |
+| ------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------- |
+| **Master Battery**       | `python run_all.py`                             | Runs all 8 phases and prints benchmark report (<50s total runtime).    |
+| **ETL Pipeline**         | `python run_pipeline.py`                        | Runs 6-stage ETL factory line, outputting clean datasets to `output/`. |
+| **Interactive CLI**      | `python streamvault_tool.py --sensitivity`      | Live era sensitivity and portfolio budget allocation simulator.        |
+| **Interactive Notebook** | `jupyter notebook analysis_and_profiling.ipynb` | Cell-by-cell exploratory data analysis and profiling walkthrough.      |
+| **Automated Tests**      | `python -m pytest tests/ -v`                    | Runs the complete 26-test automated verification suite.                |
 
 ---
 
@@ -143,14 +171,14 @@ flowchart TD
 
 The raw candidate list was compiled over four years from three unverified sources. The pipeline defensively audits all 127 lines across 6 mathematically closed stages:
 
-| Stage | Rows Remaining | Delta | What Happened |
-|---|:---:|:---:|---|
-| **1. Raw CSV Input** | **127** | 0 | The starting candidate list from `id_list.csv`. |
-| **2. Format Validation** | **124** | -3 | Line 69 was completely blank; line 30 contained `-1`; line 111 contained text `'N/A'`. All logged and excluded. |
-| **3. External Format** | **123** | -1 | Line 95 contained IMDb ID `tt0468569` (*The Dark Knight*). Resolved to TMDb ID `155`, already in list. |
-| **4. Deduplication** | **117** | -6 | Removed exact repeated entries: `155`, `278`, `550`, `603`, `680`, `1891`. |
-| **5. Live Catalog 404s** | **112** | -5 | Five obsolete IDs no longer exist on TMDb (`7733901`, `8471293`, `8471294`, `9412887`, `9412888`). |
-| **6. Final Verified Catalog** | **112** | 0 | Exactly 112 commercial titles verified and incorporated into analysis. |
+| Stage                         | Rows Remaining | Delta | What Happened                                                                                                   |
+| ----------------------------- | :------------: | :---: | --------------------------------------------------------------------------------------------------------------- |
+| **1. Raw CSV Input**          |    **127**     |   0   | The starting candidate list from `id_list.csv`.                                                                 |
+| **2. Format Validation**      |    **124**     |  -3   | Line 69 was completely blank; line 30 contained `-1`; line 111 contained text `'N/A'`. All logged and excluded. |
+| **3. External Format**        |    **123**     |  -1   | Line 95 contained IMDb ID `tt0468569` (_The Dark Knight_). Resolved to TMDb ID `155`, already in list.          |
+| **4. Deduplication**          |    **117**     |  -6   | Removed exact repeated entries: `155`, `278`, `550`, `603`, `680`, `1891`.                                      |
+| **5. Live Catalog 404s**      |    **112**     |  -5   | Five obsolete IDs no longer exist on TMDb (`7733901`, `8471293`, `8471294`, `9412887`, `9412888`).              |
+| **6. Final Verified Catalog** |    **112**     |   0   | Exactly 112 commercial titles verified and incorporated into analysis.                                          |
 
 ---
 
@@ -158,17 +186,17 @@ The raw candidate list was compiled over four years from three unverified source
 
 Key commercial trends across the 112 verified titles (detailed executive narrative in [docs/visualizations.md](docs/visualizations.md)):
 
-| Era Trends & Budgets | Franchise vs. Standalone ROI | Top Franchise Gross Volume |
-|:---:|:---:|:---:|
-| ![Era Trends](docs/images/era_trends_box_office.png) | ![Franchise vs Standalone](docs/images/franchise_vs_standalone_roi.png) | ![Top Franchises](docs/images/top_franchises_revenue.png) |
-| *Modern titles dominate volume; older titles show high efficiency.* | *Franchises provide higher median returns (5.62x vs 3.84x) and a tighter floor.* | *Top franchise ecosystems account for >$30B cumulative box office.* |
+|                        Era Trends & Budgets                         |                           Franchise vs. Standalone ROI                           |                     Top Franchise Gross Volume                      |
+| :-----------------------------------------------------------------: | :------------------------------------------------------------------------------: | :-----------------------------------------------------------------: |
+|        ![Era Trends](docs/images/era_trends_box_office.png)         |     ![Franchise vs Standalone](docs/images/franchise_vs_standalone_roi.png)      |      ![Top Franchises](docs/images/top_franchises_revenue.png)      |
+| _Modern titles dominate volume; older titles show high efficiency._ | _Franchises provide higher median returns (5.62x vs 3.84x) and a tighter floor._ | _Top franchise ecosystems account for >$30B cumulative box office._ |
 
-| Budget vs. Revenue Multiples | Ratings vs. Commercial Return |
-|:---:|:---:|
-| ![Budget Multiples](docs/images/budget_vs_revenue_multiples.png) | ![Ratings vs Return](docs/images/ratings_vs_return.png) |
-| *Highest commercial multiples cluster in $30M–$150M budget tiers.* | *High audience ratings (>7.5) consistently protect capital downside.* |
+|                    Budget vs. Revenue Multiples                    |                     Ratings vs. Commercial Return                     |
+| :----------------------------------------------------------------: | :-------------------------------------------------------------------: |
+|  ![Budget Multiples](docs/images/budget_vs_revenue_multiples.png)  |        ![Ratings vs Return](docs/images/ratings_vs_return.png)        |
+| _Highest commercial multiples cluster in $30M–$150M budget tiers._ | _High audience ratings (>7.5) consistently protect capital downside._ |
 
-*Re-generate all publication-quality charts:* `python generate_charts.py`
+_Re-generate all publication-quality charts:_ `python generate_charts.py`
 
 ---
 
@@ -210,7 +238,9 @@ streamvault_licensing_analysis_samuel_quaigraine/
 ## 7. Automated Testing & Scalability
 
 ### Test Suite (26 Automated Tests, 100% Passing)
+
 Execute tests with `python -m pytest tests/ -v`:
+
 - **`tests/test_loader.py` (4 tests)**: Verifies 127 raw lines, line 69 empty detection, negative IDs, `'N/A'`, IMDb ID, and duplicates.
 - **`tests/test_transform.py` (5 tests)**: Verifies 1-row-per-film grain, $0 financial filtering, dual-window KPIs, whole-bundle rankings with `min_roi` weakest-link floors, and the $n \ge 2$ talent fairness filter.
 - **`tests/test_validate.py` (4 tests)**: Verifies `safe_merge_one_to_one` guards and row conservation QA gates ($127 = 112 + 15$).
@@ -219,13 +249,16 @@ Execute tests with `python -m pytest tests/ -v`:
 - **`tests/test_pipeline_e2e.py` (4 tests)**: Validates complete offline pipeline execution and asserts all 8 deliverable outputs exist with exact row counts.
 
 ### Scalability to 500 Titles (Next Year's Catalog)
+
 When Kwame's analyst Adjoa receives next year's 500 titles:
+
 1. Replace `id_list.csv` with the new file and run `python run_pipeline.py`.
 2. Compute benchmarks in `evaluate_scale.py` prove that feature engineering and dual-window KPI aggregation run in **< 25 ms** for 500 titles, comfortably meeting real-time requirements on Adjoa's laptop.
 
 ---
 
 ## 8. Data Protection & Governance
+
 - **API Secrets**: Credentials in `.env` are strictly gitignored and never committed.
 - **Polite API Access**: Local caching in `data/raw/`, 0.05s rate-limit delays, session reuse, and automatic exponential backoff.
 - **Atomic Loading**: Datasets in `output/` are written atomically via temporary staging files and fingerprinted with SHA-256 hashes to guarantee data consistency.
