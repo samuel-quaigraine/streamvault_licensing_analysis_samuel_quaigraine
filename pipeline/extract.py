@@ -53,6 +53,7 @@ from pipeline.config import (
 
 def extract_candidate_ids(
     candidate_filepath: Path = ID_LIST_PATH,
+    expected_rows: Optional[int] = None,
 ) -> Tuple[pd.DataFrame, List[int], List[Dict[str, Any]]]:
     """
     EXTRACT SOURCE A (The Bouncer): Extract and audit raw candidate IDs from CSV.
@@ -82,9 +83,11 @@ def extract_candidate_ids(
 
     data_lines = raw_lines[1:]
     total_lines = len(data_lines)
-    assert total_lines == TOTAL_RAW_CANDIDATE_ROWS, (
-        f"Expected {TOTAL_RAW_CANDIDATE_ROWS} candidate lines, but found {total_lines}."
-    )
+    assert total_lines > 0, "Candidate CSV file contains no data rows."
+    if expected_rows is not None:
+        assert total_lines == expected_rows, (
+            f"Expected {expected_rows} candidate lines, but found {total_lines}."
+        )
 
     audit_records: List[Dict[str, Any]] = []
     seen_ids: set[int] = set()

@@ -1,7 +1,7 @@
 """
 Stations 2, 3, 4, and 5: Relational Flattening, Labeling, Financial Filtering, Scoring, and Talent Scouting.
 
-Factory Line Functions (from h3lp/mathematical_formulation_of_the_streamvault_pipeline.md):
+Factory Line Functions (from docs/architecture.md):
 - Station 2: The Labeler (`classify_movie`)
   Unpacks nested JSON into 3 distinct grains (films, cast, crew) and tags Franchise vs Standalone.
 - Station 3: The Quality Filter (`is_reliable`)

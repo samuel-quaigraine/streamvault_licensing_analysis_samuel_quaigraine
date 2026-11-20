@@ -58,7 +58,7 @@ for directory in (DATA_DIR, RAW_DIR, PROCESSED_DIR, OUTPUT_DIR):
 
 # ==============================================================================
 # SECTION: 5-Station Factory Line Parameters & Business Rules
-# Formulated in h3lp/mathematical_formulation_of_the_streamvault_pipeline.md
+# Formulated in docs/architecture.md
 # ==============================================================================
 
 # Station 1: The Bouncer (Candidate Validation & Ingestion)

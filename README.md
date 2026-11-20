@@ -45,7 +45,7 @@ source .venv/bin/activate       # On Linux/macOS
 pip install -r requirements.txt
 
 # 4. Set up credentials
-cp .example.env .env            # Add your free TMDb API key/token to .env
+cp .env.example .env            # Add your free TMDb API key/token to .env
 ```
 
 ### One-Command Master Execution (8-Phase Test & Pipeline Battery)
@@ -78,7 +78,7 @@ The pipeline decouples network acquisition from local compute, caches raw API pa
 ```mermaid
 flowchart TD
     subgraph Inputs & Configuration
-        ENV[".env / .example.env"] --> CFG["pipeline/config.py"]
+        ENV[".env / .env.example"] --> CFG["pipeline/config.py"]
         CSV["id_list.csv (127 lines)"] --> LOAD["pipeline/load.py"]
         CFG --> LOAD
     end

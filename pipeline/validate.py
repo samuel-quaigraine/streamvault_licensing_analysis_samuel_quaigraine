@@ -92,8 +92,12 @@ def validate_cast_crew_grain(
         "total_films": len(films_df),
         "total_cast_rows": len(cast_df),
         "total_crew_rows": len(crew_df),
+        "films_in_cast": len(cast_film_ids),
+        "films_in_crew": len(crew_film_ids),
         "avg_cast_per_film": len(cast_df) / len(films_df) if len(films_df) > 0 else 0.0,
         "avg_crew_per_film": len(crew_df) / len(films_df) if len(films_df) > 0 else 0.0,
         "orphan_cast_count": len(unmatched_cast_films),
         "orphan_crew_count": len(unmatched_crew_films),
+        "unmatched_cast_film_ids": list(unmatched_cast_films),
+        "unmatched_crew_film_ids": list(unmatched_crew_films),
     }

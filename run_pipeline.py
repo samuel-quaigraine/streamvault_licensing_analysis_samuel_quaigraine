@@ -1,7 +1,7 @@
 """
 Master Execution Script for StreamVault Content Acquisition Pipeline.
 
-Orchestrates the 5 Factory Stations (h3lp/mathematical_formulation_of_the_streamvault_pipeline.md):
+Orchestrates the 5 Factory Stations (docs/architecture.md):
 - Step 1 (Extract): Candidate extraction from id_list.csv (The Bouncer door check) + TMDb API extraction (Missing Box)
 - Step 2 (Validate): Referential grain integrity checks (zero orphan cast/crew records)
 - Step 3 (Transform): 3 relational grains (films, cast, crew), Franchise vs Standalone tagged, $0 unrecorded money filtered
