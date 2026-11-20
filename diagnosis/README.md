@@ -188,6 +188,12 @@ In film datasets, unrecorded box office often appears as $0.00 rather than `NaN`
 - In our verified 112 titles, exactly **0 films reported $0 revenue** and **0 films reported $0 budget**.
 - All 112 verified titles represent major theatrical releases with complete financial reporting.
 
+### The "Partial Bundle Trap" in Candidate Franchises
+Studios license franchises on an all-or-nothing basis (e.g., license the entire series or none). In our catalog profiling:
+- Collections like *Harry Potter* (8 films), *The Dark Knight* (3 films), and *The Lord of the Rings* (3 films) are complete collections on the candidate list where every entry has been audited.
+- In contrast, series like *Jaws* (only 1 film on the list), *The Terminator* (only 4 of 6), and *Alien* (only 4 of 6+) are incomplete subsets.
+- **Strategic Implication:** Evaluating an incomplete franchise on only its top legacy hits hides weak, expensive sequels. Our pipeline implements whole-bundle aggregation tracking `min_roi` (the weakest-link floor) so Kwame never bids on partial bundles without pricing in unlisted sequels.
+
 ### Outlier Detection (Interquartile Range Rule)
 We used the standard Tukey Boxplot method:
 - `IQR = Q3 - Q1`

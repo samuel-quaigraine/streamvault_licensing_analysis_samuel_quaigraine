@@ -30,46 +30,44 @@ The anomalies discovered map directly into the defensive stations of the StreamV
 
 ---
 
-## Findings, ranked by risk
+## Findings, ranked by risk to Kwame's decision
 
-### F-01: Deprecated Identifiers (404 Not Found) — Severity: High
-- **What it is:** Five identifiers (`7733901`, `8471293`, `8471294`, `9412887`, `9412888`) generated HTTP 404 Not Found errors during live catalog acquisition.
-- **How I detected it:** Monitored HTTP status codes during data extraction in `pipeline/extract.py` with explicit branching on `404` rather than letting network calls raise unhandled exceptions.
-- **Scale:** 5 out of 127 identifiers (3.9% of candidate list).
-- **Effect on the client's number:** These titles represent lost opportunities from older intake spreadsheets. If these 5 films were major commercial drivers, their omission could theoretically bias the portfolio. However, since they no longer exist in the system of record, they cannot be licensed under these IDs.
-- **What I did about it:** Recorded all 5 IDs in the permanent Missing Box (`data/raw/dead_ids.json`) and `manifest.csv`, logged their exclusion, and omitted them from downstream calculations without halting pipeline execution.
-- **Residual risk:** If any of these titles was a specific priority target for Kwame, the licensing desk must request updated system IDs from the selling studio.
+### Rank 1 (Critical Risk) — Partial Franchise Bundles in the Candidate List
+- **What it is:** Studios license franchises on an all-or-nothing basis (e.g. license the entire series or none). However, the stitched-together candidate list contains only partial subsets of several major franchises: e.g., only 1 *Jaws* film (out of 4), 4 *Terminator* films (out of 6), 3 *Jurassic Park* films (missing *Jurassic World* entries), and 4 *Alien* films (out of 6+).
+- **How I detected it:** Cross-referenced candidate film counts against TMDb `belongs_to_collection` identifiers in `pipeline/transform.py` (`rank_franchise_bundles`).
+- **Scale:** 9 franchise collections on the candidate list represent incomplete subsets.
+- **Effect on the client's number:** Evaluating an incomplete franchise on only its legacy hits hides weak, expensive sequels. If Kwame agrees to a bundle price based on *Jaws 1* (19x ROI), but the distributor forces StreamVault to take the disastrous sequels (*Jaws 2*, *Jaws 3-D*, *Jaws: The Revenge*), StreamVault severely overpays. Conversely, our top recommended targets (*Harry Potter* [8 films], *The Dark Knight* [3 films], *The Lord of the Rings* [3 films]) are complete collections on the list where every single installment has been evaluated.
+- **What I did about it:** Built whole-bundle rollups measuring both total collection return and the `min_roi` (weakest-link floor). Advised Kwame to restrict upfront bundle bids to complete series and demand a complete title list before pricing partial franchises.
+- **Residual risk:** If studios insist on including unlisted modern sequels in negotiation packages, Adjoa must drop the updated IDs into the pipeline to recalculate whole-bundle economics.
 
-### F-02: Format Invalidation & Dynamic Empty Row Detection — Severity: Medium
-- **What it is:** Line 69 of `id_list.csv` was completely blank. Line 30 contained `-1`, and line 111 contained the text string `'N/A'`.
-- **How I detected it:** Programmatic line-by-line inspection scanning for `not trimmed`, attempting integer parsing, and enforcing positive domain rules without hardcoding line numbers.
-- **Scale:** 3 of 127 lines (2.4%).
-- **Effect on the client's number:** A naive loader would either crash on blank lines or silently drop rows without logging, leaving Kwame unable to explain why his candidate count changed from 127 to 124.
-- **What I did about it:** Implemented a dynamic door auditor in `pipeline/extract.py` that records the exact line number, raw string, and failure reason.
+### Rank 2 (High Risk) — Zero-Value Financial Fields ($0 Budget / $0 Revenue)
+- **What it is:** In TMDb, unrecorded budgets and revenues appear as `$0` rather than `null`. A naive calculation of `Revenue / Budget` produces division-by-zero errors or falsely scores unrecorded titles as complete commercial failures (`0.0x`).
+- **How I detected it:** Automated profiling in `pipeline/checks.py` scanning for `revenue == 0` and `budget == 0`.
+- **Scale:** In our verified 112 titles, exactly **0 titles reported $0 revenue** and **0 titles reported $0 budget** (all 112 are major theatrical releases with complete reporting). However, on next year's 500-title list, unrecorded titles will inevitably appear.
+- **Effect on the client's number:** Treating missing figures as real zeros would artificially drag down standalone averages and distort ROI comparisons.
+- **What I did about it:** Implemented `filter_reliable_financials` in `pipeline/transform.py`, parameterizing `$0` handling (`treat_zero_revenue_as_missing = True`) to exclude unrecorded titles from financial return metrics without dropping them from catalog totals.
+- **Residual risk:** None. Transparently auditable under both assumptions.
+
+### Rank 3 (Medium Risk) — Duplicate & Malformed IDs from Merged Trackers
+- **What it is:** Merging three legacy spreadsheets introduced 15 administrative errors:
+  - 1 completely blank row (line 69).
+  - 1 negative identifier (`-1` on line 30).
+  - 1 literal text placeholder (`'N/A'` on line 111).
+  - 1 external IMDb identifier (`tt0468569` on line 95, resolving to duplicate ID `155`).
+  - 6 exact duplicate submissions (`155`, `278`, `550`, `603`, `680`, `1891`).
+  - 5 deprecated IDs returning live HTTP 404 Not Found (`7733901`, `8471293`, `8471294`, `9412887`, `9412888`).
+- **How I detected it:** Dynamic line-by-line inspection in `pipeline/extract.py` and persistent logging in `data/raw/dead_ids.json`.
+- **Scale:** 15 of 127 candidate rows (11.8%).
+- **Effect on the client's number:** Naive loaders would either crash on line 69 or silently drop rows, leaving Kwame unable to explain why his candidate count fell from 127 to 112. Retaining duplicates would artificially inflate box office totals by double-counting blockbusters.
+- **What I did about it:** Built a dynamic bouncer and permanent Missing Box. Guaranteed 100% mathematical reconciliation: `127 Input IDs = 112 Valid Baseline + 10 Excluded at Door + 5 Live 404s`.
 - **Residual risk:** Zero residual risk to calculations; 100% accounted for in reconciliation.
 
-### F-03: External IMDb Identifier Formatting — Severity: Medium
-- **What it is:** Line 95 contained an IMDb title identifier (`tt0468569`) rather than a numeric TMDb ID.
-- **How I detected it:** String prefix pattern detection matching `tt\d+`.
-- **Scale:** 1 of 127 lines (0.8%).
-- **Effect on the client's number:** If ignored, *The Dark Knight* would have been dropped from the analysis, underrepresenting franchise performance.
-- **What I did about it:** Queried the external ID resolution endpoint in `pipeline/extract.py`, confirming `tt0468569` maps to TMDb ID `155` (*The Dark Knight*). Because ID `155` was already present on line 2, line 95 was identified as a cross-system semantic duplicate.
-- **Residual risk:** None. Confirmed *The Dark Knight* is included in the analytical baseline.
-
-### F-04: Candidate ID Duplication — Severity: Medium
-- **What it is:** Six movie IDs were entered twice in the candidate list: `155` (*The Dark Knight*), `278` (*The Shawshank Redemption*), `550` (*Fight Club*), `603` (*The Matrix*), `680` (*Pulp Fiction*), and `1891` (*The Empire Strikes Back*).
-- **How I detected it:** Uniqueness assertions using a tracking set `seen_ids` in `pipeline/extract.py`.
-- **Scale:** 6 duplicate occurrences out of 127 rows (4.7%).
-- **Effect on the client's number:** If duplicates were retained, high-performing titles would be counted twice, artificially inflating both franchise and standalone total revenues and skewing mean ROI upward.
-- **What I did about it:** Deduplicated the ID list at ingestion, preserving the first instance and logging subsequent duplicates in the audit registry.
-- **Residual risk:** None. The unique catalog accurately reflects 112 unique films.
-
-### F-05: Skewness from Extreme Revenue Outliers — Severity: Low
-- **What it is:** *The Avengers* ($1.52B), *Avengers: Infinity War* ($2.05B), and *Avengers: Endgame* ($2.80B) represent extreme positive outliers on box office gross.
-- **How I detected it:** Interquartile range (IQR) distribution profiling where values exceeded `Q3 + (1.5 * IQR)` in `pipeline/checks.py`.
-- **Scale:** 3 blockbuster titles in the franchise group.
-- **Effect on the client's number:** While the mean franchise return is 8.54x, the median is 5.62x. Relying on the mean would overstate expected returns for typical franchise acquisitions.
-- **What I did about it:** Reported median return multiples alongside means in all business recommendations to ensure decisions are robust against outlier distortion.
+### Rank 4 (Contextual Risk) — Unadjusted Historical Dollars & Extreme Outliers
+- **What it is:** Pre-2000 theatrical gross is unadjusted for ticket inflation, and multi-billion-dollar blockbusters (*Avengers: Endgame* at $2.80B, *Avengers: Infinity War* at $2.05B) skew arithmetic means upward.
+- **How I detected it:** IQR distribution fences in `pipeline/checks.py` and era segmentation in `pipeline/transform.py`.
+- **Scale:** Outlier fence threshold at $1.73B; 41 pre-2000 titles vs 71 post-2000 titles.
+- **Effect on the client's number:** Relying on arithmetic means overstates expected returns ($8.54x mean vs $5.62x median for franchises). Over-indexing on pre-2000 classics invites immediate rejection from Finance VP Yaw.
+- **What I did about it:** Anchored all business recommendations in median returns, and evaluated all portfolio KPIs across both time windows (All-Years vs. 2000-Onward), proving the franchise recommendation never flips ($5.05x vs $3.84x in the modern era).
 - **Residual risk:** Low. The median provides an honest, achievable performance baseline.
 
 ---

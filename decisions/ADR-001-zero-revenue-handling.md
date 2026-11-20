@@ -1,4 +1,4 @@
-# ADR-001: Parameterized Zero-Revenue and Missing Money Handling
+# ADR-001: Zero-Revenue Handling, Value Definition, and Unverified Blind Spots
 
 - **Status:** Accepted
 - **Date:** October 31, 2026
@@ -13,7 +13,7 @@ This creates a serious business challenge for StreamVault's $14M licensing decis
 - If we naively calculate return as `Revenue / Budget` and treat `$0` as real money, a movie with a $10M budget and unrecorded revenue gets scored as a `0.0x` return. We would be falsely punishing a great film as a catastrophic commercial failure!
 - On the other hand, if we throw out every film with missing money numbers, someone might accuse us of cherry-picking and hiding real box office flops.
 
-Kwame is presenting to the board and Finance VP Yaw, both of whom will scrutinize how we handled missing money data.
+Kwame is presenting to the board and Finance VP Yaw, both of whom will scrutinize how we handled missing money data and defined catalog value.
 
 ---
 
@@ -27,7 +27,15 @@ We built a flexible, parameterized system in `pipeline/transform.py` (`filter_re
 
 ---
 
-## 3. Other Options We Considered and Rejected
+## 3. Defining "Value" Without Internal Streaming Data
+We do not have StreamVault's internal viewer completion or subscriber retention data. To measure title value objectively, we made the conscious architectural choice to use a **disciplined composite of Commercial Return (ROI) and Proven Audience Reach (Box Office Gross + User Vote Volume)**:
+- **Why not User Rating alone?** Relying purely on ratings over-rewards niche cult classics (e.g. high critical acclaim but low commercial draw) that fail to drive broad subscriber adoption.
+- **Why not Total Box Office alone?** Relying purely on raw gross over-rewards massive $250M blockbusters while ignoring capital efficiency and licensing cost bases.
+- **The Balance:** Grounding valuation in median return multiple (`Revenue / Budget`) coupled with audience vote scale provides a robust, reproducible proxy for broad viewer demand without fabricating unmeasured streaming churn metrics.
+
+---
+
+## 4. Other Options We Considered and Rejected
 
 ### Option A: Treat all `$0` revenue as `0.0x` flops without checking
 - **What it would do:** Automatically treat every film missing revenue as a complete loss.
@@ -39,12 +47,26 @@ We built a flexible, parameterized system in `pipeline/transform.py` (`filter_re
 
 ---
 
-## 4. What This Means for Kwame and StreamVault
-- **Total Transparency in Front of Finance:** When Finance VP Yaw asks how we handled missing box office numbers, Kwame can show him the results under both rules side-by-side.
-- **Stable Finding:** Because all 112 verified titles in our candidate pool have complete box office records, the baseline numbers hold true: franchise films deliver a median return of **5.62x** compared to **3.84x** for standalone titles.
-- **Risk if Wrong:** If future films with unrecorded revenues were true box office disasters, our baseline might look slightly more optimistic. That is exactly why we built the sensitivity toggle so Kwame can test the worst-case scenario at any moment.
+## 5. What We Couldn't Verify & What It Costs Kwame in November
+To protect Kwame in the boardroom, we plainly state where public theatrical data ends and real-world negotiation begins:
+
+1. **Studio Licensing Asking Prices**:
+   - *The Reality:* TMDb records historical production costs and theatrical grosses, not current studio licensing rate cards.
+   - *What it costs Kwame:* If distributors demand more than 40% of the total budget ($5.6M+) for a single franchise bundle, Kwame risks budget exhaustion. **Negotiation rule:** Kwame must enforce a strict 40% walk-away threshold and pivot capital into the standalone shortlist if studios price gouge.
+2. **Actual Streaming Viewer Retention & Completion**:
+   - *The Reality:* Theatrical box office demonstrates broad cultural reach, but does not guarantee repeat home streaming completions.
+   - *What it costs Kwame:* High-grossing spectacle films with zero rewatch value could fail to reduce monthly subscriber churn.
+3. **Regional Streaming Rights & Exclusivity**:
+   - *The Reality:* Public catalog data cannot verify whether rival platforms (Netflix, Amazon, Disney+) currently hold active exclusive windows in our operating territories.
+   - *What it costs Kwame:* Kwame risks wasting negotiation cycles or signing deal memos for unstreamable titles. **Negotiation rule:** Require distributor legal warranties guaranteeing 100% regional streaming exclusivity before signing deal memos.
 
 ---
 
-## 5. How This Protects Adjoa Next Year (500 Titles)
+## 6. What This Means for Kwame and StreamVault
+- **Total Transparency in Front of Finance:** When Finance VP Yaw asks how we handled missing box office numbers, Kwame can show him the results under both rules side-by-side.
+- **Stable Finding:** Because all 112 verified titles in our candidate pool have complete box office records, the baseline numbers hold true: franchise films deliver a median return of **5.62x** compared to **3.84x** for standalone titles.
+
+---
+
+## 7. How This Protects Adjoa Next Year (500 Titles)
 Next year, when Adjoa reruns this pipeline on 500 titles by herself, she will not need to edit code or rewrite formulas. Whether the new batch has 5 missing titles or 50, the pipeline will automatically process them, calculate both scenarios, and immediately alert her if the recommendation flips.

@@ -32,7 +32,7 @@ This document provides visual insights into the StreamVault candidate catalog ($
 
 ### Key Takeaways:
 - **The Power of Universe IP**: The top 5 franchise ecosystems in the candidate pool (*Harry Potter Collection*, *The Dark Knight Collection*, *Star Wars Collection*, *The Lord of the Rings Collection*, and *Pirates of the Caribbean Collection*) account for over $30B in cumulative box office.
-- **Acquisition Strategy**: StreamVault should prioritize acquiring complete franchise bundles. Viewers who start a series have a 73% higher 30-day retention rate when subsequent installments are available on the same platform.
+- **Acquisition Strategy**: StreamVault should prioritize acquiring complete franchise bundles. Acquiring complete series protects against viewer drop-off between installments, providing multi-title viewing continuity across proven, high-grossing IP.
 
 ---
 
