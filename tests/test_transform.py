@@ -27,10 +27,13 @@ from pipeline.transform import (
 
 @pytest.fixture
 def sample_films():
-    """Test Fixture: Loads clean analytical films or returns a synthetic DataFrame."""
-    for path in (OUTPUT_DIR / "clean_films.csv", PROCESSED_DIR / "clean_films.csv", PROCESSED_DIR / "films_analytical.csv"):
-        if path.exists():
-            return pd.read_csv(path)
+    """
+    Test Fixture: Loads authoritative clean analytical films from output/clean_films.csv.
+    Falls back to a synthetic DataFrame with vote_average when running in isolated unit test environments.
+    """
+    canonical_path = OUTPUT_DIR / "clean_films.csv"
+    if canonical_path.exists():
+        return pd.read_csv(canonical_path)
     return pd.DataFrame([
         {"movie_id": 1, "title": "Film A", "is_franchise": True, "budget": 100, "revenue": 500, "release_year": 2005, "era": "2000-Onward", "vote_average": 8.1},
         {"movie_id": 2, "title": "Film B", "is_franchise": True, "budget": 150, "revenue": 600, "release_year": 2008, "era": "2000-Onward", "vote_average": 7.9},

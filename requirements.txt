@@ -1,7 +1,7 @@
-# StreamVault Content Acquisition Pipeline Dependencies
-requests>=2.31.0
-pandas>=2.2.0
-numpy>=1.26.0
-python-dotenv>=1.0.0
-pytest>=8.0.0
-matplotlib>=3.8.0
+# StreamVault Content Acquisition Pipeline Dependencies (Pinned for Deterministic Reproducibility)
+requests==2.34.2
+pandas==3.1.1
+numpy==2.5.5
+python-dotenv==1.2.4
+pytest==9.2.0
+matplotlib==3.11.2

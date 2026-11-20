@@ -9,26 +9,17 @@ import sys
 import pytest
 import pandas as pd
 
-from pipeline.config import PROCESSED_DIR
+from pipeline.config import OUTPUT_DIR
 from streamvault_tool import run_era_sensitivity_analysis, simulate_portfolio_allocation
 
 
 @pytest.fixture
 def clean_films():
-    """Loads clean analytical films table or synthetic fallback."""
-    films_path = PROCESSED_DIR / "films_analytical.csv"
-    if films_path.exists():
-        return pd.read_csv(films_path)
-    return pd.DataFrame([
-        {"movie_id": 1, "title": "Series A1", "is_franchise": True, "collection_name": "Series A",
-         "budget": 100.0, "revenue": 600.0, "return_on_cost": 6.0, "vote_average": 8.0, "release_year": 1995},
-        {"movie_id": 2, "title": "Series A2", "is_franchise": True, "collection_name": "Series A",
-         "budget": 150.0, "revenue": 750.0, "return_on_cost": 5.0, "vote_average": 8.2, "release_year": 2002},
-        {"movie_id": 3, "title": "Standalone 1", "is_franchise": False, "collection_name": None,
-         "budget": 50.0, "revenue": 200.0, "return_on_cost": 4.0, "vote_average": 8.5, "release_year": 2008},
-        {"movie_id": 4, "title": "Standalone 2", "is_franchise": False, "collection_name": None,
-         "budget": 80.0, "revenue": 240.0, "return_on_cost": 3.0, "vote_average": 8.1, "release_year": 2012},
-    ])
+    """Loads authoritative clean analytical films deliverable. Fails loudly if missing."""
+    films_path = OUTPUT_DIR / "clean_films.csv"
+    if not films_path.exists():
+        pytest.fail(f"Authoritative deliverable {films_path} missing. Run pipeline first.")
+    return pd.read_csv(films_path)
 
 
 def test_era_sensitivity_analysis_structure(clean_films):

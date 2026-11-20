@@ -24,11 +24,29 @@ def test_safe_merge_one_to_one_success():
 
 
 def test_safe_merge_detects_fan_out():
-    """Simulates duplicate keys causing fan-out and asserts exception is raised."""
+    """Simulates duplicate keys causing fan-out and asserts pd.errors.MergeError is raised."""
     df_left = pd.DataFrame({"movie_id": [1, 2], "title": ["Film 1", "Film 2"]})
     df_right = pd.DataFrame({"movie_id": [1, 1, 2], "actor": ["Actor A", "Actor B", "Actor C"]})
 
-    with pytest.raises(Exception):
+    with pytest.raises(pd.errors.MergeError):
+        _ = safe_merge_one_to_one(df_left, df_right, on="movie_id")
+
+
+def test_safe_merge_detects_dtype_mismatch():
+    """Confirms safe_merge_one_to_one raises TypeError on mismatched key dtypes."""
+    df_left = pd.DataFrame({"movie_id": [1, 2], "title": ["Film 1", "Film 2"]})
+    df_right = pd.DataFrame({"movie_id": ["1", "2"], "revenue": [100, 200]})
+
+    with pytest.raises(TypeError, match="dtype mismatch"):
+        _ = safe_merge_one_to_one(df_left, df_right, on="movie_id")
+
+
+def test_safe_merge_detects_null_key():
+    """Confirms safe_merge_one_to_one raises ValueError when join keys contain nulls."""
+    df_left = pd.DataFrame({"movie_id": [1.0, None], "title": ["Film 1", "Film 2"]})
+    df_right = pd.DataFrame({"movie_id": [1.0, 2.0], "revenue": [100.0, 200.0]})
+
+    with pytest.raises(ValueError, match="null/NaN"):
         _ = safe_merge_one_to_one(df_left, df_right, on="movie_id")
 
 

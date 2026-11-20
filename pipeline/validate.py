@@ -33,6 +33,25 @@ def safe_merge_one_to_one(
     silently multiply rows. If a key appears multiple times in the right table,
     pandas throws an immediate exception rather than producing phantom rows!
     """
+    # Contract validation: ensure join key exists in both DataFrames
+    if on not in left_df.columns:
+        raise KeyError(f"Join key '{on}' not found in {left_name} DataFrame.")
+    if on not in right_df.columns:
+        raise KeyError(f"Join key '{on}' not found in {right_name} DataFrame.")
+
+    # Contract validation: ensure no null/NaN keys exist
+    if left_df[on].isna().any():
+        raise ValueError(f"Join key '{on}' in {left_name} DataFrame contains null/NaN values.")
+    if right_df[on].isna().any():
+        raise ValueError(f"Join key '{on}' in {right_name} DataFrame contains null/NaN values.")
+
+    # Contract validation: ensure key dtypes match
+    if left_df[on].dtype != right_df[on].dtype:
+        raise TypeError(
+            f"Join key '{on}' dtype mismatch: {left_name} has {left_df[on].dtype}, "
+            f"but {right_name} has {right_df[on].dtype}."
+        )
+
     before_len = len(left_df)
 
     # Execute Guarded 1-to-1 Merge

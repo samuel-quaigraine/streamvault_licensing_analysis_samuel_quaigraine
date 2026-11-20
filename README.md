@@ -31,14 +31,14 @@ In pre-integration consulting, establishing an objective external benchmark with
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.11, 3.12, or 3.13 (Tested on 3.11, 3.12, and 3.13)
 - Git
 
 ### Quickstart Setup
 
 #### 1. Clone the repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/SamuelQuaigraine/streamvault_licensing_analysis_samuel_quaigraine.git
 cd streamvault_licensing_analysis_samuel_quaigraine
 ```
 
@@ -66,10 +66,10 @@ Accounting for your operating system and shell:
 # Install dependencies into active environment
 python -m pip install -r requirements.txt
 
-# Copy environment template
-cp .env.example .env            # macOS / Linux / Git Bash
-copy .env.example .env          # Windows Command Prompt
-Copy-Item .env.example .env     # Windows PowerShell
+# Copy environment template (choose one command for your operating system):
+cp .env.example .env            # Option A: Linux / macOS / Git Bash
+copy .env.example .env          # Option B: Windows Command Prompt (cmd)
+Copy-Item .env.example .env     # Option C: Windows PowerShell
 ```
 Open `.env` and add your free TMDb API key or Read Access Token.
 
@@ -204,7 +204,7 @@ _Re-generate all publication-quality charts:_ `python generate_charts.py`
 
 ```
 streamvault_licensing_analysis_samuel_quaigraine/
-├── client_memo.md                    # Deliverable 4: Strict 1-page executive memo to Kwame (516 words)
+├── client_memo.md                    # Deliverable 4: Strict 1-page executive memo to Kwame (513 words)
 ├── data_findings.md                  # Deliverable 1: Data diagnosis, anomalies, and risk ranking
 ├── improvement.md                    # Deliverable 5: Live scenario tool & sensitivity analysis
 ├── run_pipeline.py                   # Deliverable 2: End-to-end master ETL pipeline script
@@ -221,32 +221,44 @@ streamvault_licensing_analysis_samuel_quaigraine/
 │   └── ADR-005-vectorization-and-scale.md         # Step 5: Vectorization & Scale
 │
 ├── pipeline/                         # Modular ETL Engine Package
-│   ├── config.py, extract.py, transform.py, validate.py, checks.py, load.py
+│   ├── __init__.py
+│   ├── config.py                     # Configuration constants and directory auto-creation
+│   ├── extract.py                    # Candidate ingestion & TMDb API client
+│   ├── transform.py                  # Vectorized financial metrics, KPIs, and talent rankings
+│   ├── validate.py                   # One-to-one join guards & schema contracts
+│   ├── checks.py                     # Pre-load QA gates & candidate reconciliation
+│   └── load.py                       # Atomic CSV exports with SHA-256 fingerprinting
 │
 ├── output/                           # Deliverable Data Exports & Audited Tables
-│   ├── clean_films.csv, clean_cast.csv, clean_crew.csv, summary_kpis.csv,
-│   └── franchise_rankings.csv, standalone_rankings.csv, candidate_reconciliation.csv
+│   ├── candidate_reconciliation.csv  # 6-stage candidate accounting (127 -> 112 titles)
+│   ├── clean_films.csv               # 112 verified titles at 1 row / film grain
+│   ├── clean_cast.csv                # 7,827 actor credits
+│   ├── clean_crew.csv                # 24,932 crew credits
+│   ├── summary_kpis.csv              # Dual-window era comparisons (All vs. 2000+)
+│   ├── franchise_rankings.csv        # Commercial rankings for 18 franchise bundles
+│   ├── standalone_rankings.csv       # Commercial rankings for standalone titles
+│   └── profiling_summary.json        # Disguised null audit & financial invariants
 │
 ├── docs/                             # Architecture & Visual Reports
 │   ├── architecture.md, visualizations.md, images/
 │
-└── tests/                            # 26 Automated Tests across 6 Modules (pytest)
+└── tests/                            # 28 Automated Tests across 6 Modules (pytest)
 ```
 
 ---
 
 ## 7. Automated Testing & Scalability
 
-### Test Suite (26 Automated Tests, 100% Passing)
+### Test Suite (28 Automated Tests, 100% Passing)
 
-Execute tests with `python -m pytest tests/ -v`:
+Execute the test suite locally with `python -m pytest tests/ -v` (or run `python run_all.py` for the unified 8-phase test & execution battery):
 
-- **`tests/test_loader.py` (4 tests)**: Verifies 127 raw lines, line 69 empty detection, negative IDs, `'N/A'`, IMDb ID, and duplicates.
+- **`tests/test_loader.py` (4 tests)**: Verifies 127 raw lines, line 69 empty detection, negative IDs, `'N/A'`, IMDb ID, and duplicates via derived invariants.
 - **`tests/test_transform.py` (5 tests)**: Verifies 1-row-per-film grain, $0 financial filtering, dual-window KPIs, whole-bundle rankings with `min_roi` weakest-link floors, and the $n \ge 2$ talent fairness filter.
-- **`tests/test_validate.py` (4 tests)**: Verifies `safe_merge_one_to_one` guards and row conservation QA gates ($127 = 112 + 15$).
-- **`tests/test_scale.py` (5 tests)**: Asserts NumPy vectorization is $\ge 10\times$ faster than row loops, 500 titles run in $<50\text{ ms}$, and verifies linear $O(N)$ complexity up to 5,000 titles.
+- **`tests/test_validate.py` (6 tests)**: Verifies `safe_merge_one_to_one` fan-out guards, key dtype checks, null key validation, and row conservation QA gates ($127 = 112 + 15$).
+- **`tests/test_scale.py` (5 tests)**: Asserts NumPy vectorization is $\ge 5.0\times$ faster than row loops, 500 titles run in $<250\text{ ms}$, and verifies linear $O(N)$ complexity up to 5,000 titles.
 - **`tests/test_tool.py` (4 tests)**: Verifies sensitivity tables across all 6 era years (1990–2015), portfolio budget allocations, and CLI flags.
-- **`tests/test_pipeline_e2e.py` (4 tests)**: Validates complete offline pipeline execution and asserts all 8 deliverable outputs exist with exact row counts.
+- **`tests/test_pipeline_e2e.py` (4 tests)**: Validates complete offline pipeline execution and asserts all 8 deliverable outputs exist with invariant row relationships.
 
 ### Scalability to 500 Titles (Next Year's Catalog)
 
@@ -259,6 +271,6 @@ When Kwame's analyst Adjoa receives next year's 500 titles:
 
 ## 8. Data Protection & Governance
 
-- **API Secrets**: Credentials in `.env` are strictly gitignored and never committed.
+- **API Secrets**: Credentials in `.env` are strictly gitignored, protected by a pre-flight regex credential scanner in `run_all.py`, and verified never committed to version control.
 - **Polite API Access**: Local caching in `data/raw/`, 0.05s rate-limit delays, session reuse, and automatic exponential backoff.
 - **Atomic Loading**: Datasets in `output/` are written atomically via temporary staging files and fingerprinted with SHA-256 hashes to guarantee data consistency.

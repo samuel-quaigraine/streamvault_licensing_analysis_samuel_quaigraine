@@ -9,7 +9,7 @@
 ## 1. The Context & The Problem
 Kwame's analyst, Adjoa, will rerun this pipeline quarterly on her own laptop, often live in fast-paced executive meetings where waiting for a sluggish script is completely unacceptable.
 
-Furthermore, next year's candidate list will quadruple from 127 to **500 titles**. 
+Furthermore, next year's candidate list will expand roughly 3.9x (from 127 to **500 titles**). 
 
 Standard Python scripts that rely on slow row-by-row loops (like `iterrows()` or `apply(axis=1)`) become noticeably slower as data grows. If Adjoa is asked to test a different budget scenario during a review, she cannot afford to sit through a progress bar while executives wait.
 
@@ -37,6 +37,8 @@ We measured the performance of our vectorized transformations against standard r
 | **Stress Test (5,000 titles)** | **12.40 ms** | 390.20 ms | **31.5x faster** |
 
 Total end-to-end analytical compute time on the verified catalog is **21 milliseconds**. The total pipeline execution (including reading files and writing all output CSVs atomically) finishes in **less than 1 second** from cache.
+
+Reproduce these benchmark measurements at any time on your machine by executing: `python evaluate_scale.py`.
 
 ---
 

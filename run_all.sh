@@ -26,8 +26,10 @@ echo "STREAMVAULT MASTER RUNNER (Shell Script: run_all.sh)"
 echo "Using Python: $($PYTHON_BIN --version 2>&1)"
 echo "================================================================================"
 
-# Execute unified Python orchestrator
+# Execute unified Python orchestrator safely capturing exit code
+set +e
 "$PYTHON_BIN" run_all.py "$@"
 EXIT_CODE=$?
+set -e
 
 exit $EXIT_CODE

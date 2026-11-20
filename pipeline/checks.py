@@ -195,6 +195,14 @@ def build_reconciliation_table(
         "Reason": "Cleaned analytical film dataset prepared for KPI evaluation"
     })
 
+    # Enforce strict candidate closure invariant as a hard gate
+    total_excluded = n_format_ex + n_ext + n_dup + n_dead
+    if total_raw != final_count + total_excluded:
+        raise ReconciliationError(
+            f"Candidate reconciliation closure broken! "
+            f"Raw={total_raw}, but final_verified({final_count}) + total_excluded({total_excluded}) = {final_count + total_excluded}"
+        )
+
     return reconciliation
 
 

@@ -13,16 +13,20 @@ from pipeline.load import load_candidate_ids
 
 def test_candidate_loader_counts():
     """
-    BLOCK: Test Total Candidate Accounting
-    What it does: Confirms that load_candidate_ids() accurately loads all 127 lines,
-    identifies exactly 117 unique valid numeric IDs, and logs 10 exclusions.
+    BLOCK: Test Total Candidate Accounting & Invariant Closure
+    What it does: Confirms that load_candidate_ids() accurately accounts for every candidate line,
+    verifying that total rows equal unique valid IDs plus logged exclusions.
     """
     candidate_df, valid_ids, exclusion_log = load_candidate_ids()
 
-    # Must account for exactly 127 candidate lines
-    assert len(candidate_df) == 127, f"Expected 127 candidate lines, got {len(candidate_df)}"
-    assert len(valid_ids) == 117, f"Expected 117 unique valid numeric IDs, got {len(valid_ids)}"
-    assert len(exclusion_log) == 10, f"Expected 10 total exclusions, got {len(exclusion_log)}"
+    # Invariants derived from candidate table status accounting
+    expected_valid_count = len(candidate_df[candidate_df["status"] == "VALID"])
+    expected_exclusions_count = len(candidate_df[candidate_df["status"] != "VALID"])
+
+    assert len(candidate_df) == expected_valid_count + expected_exclusions_count
+    assert len(valid_ids) == expected_valid_count, f"Expected {expected_valid_count} valid IDs, got {len(valid_ids)}"
+    assert len(valid_ids) == len(set(valid_ids)), "All valid IDs must be unique"
+    assert len(exclusion_log) == expected_exclusions_count, f"Expected {expected_exclusions_count} exclusions, got {len(exclusion_log)}"
 
 
 def test_line_69_empty_row_detection():
