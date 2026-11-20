@@ -8,7 +8,7 @@
 In film performance analytics, unrecorded or missing box office numbers often appear as \$0.00 rather than explicit nulls. When computing return-on-cost ($\text{Revenue} / \text{Budget}$), treating \$0 as genuine revenue drags the group mean and median downward as an artificial total loss. Conversely, discarding \$0 entries could artificially inflate performance by omitting genuine box office flops. Kwame is presenting to the board and Finance VP Yaw, both of whom will scrutinize how missing data was handled.
 
 ## Decision
-I parameterized the financial metric calculation (`engineer_financial_metrics(films_df, treat_zero_revenue_as_missing: bool)`) to evaluate portfolio returns under both assumptions. For the baseline recommendation, any entry with zero or missing revenue is excluded from return-on-cost metrics rather than coerced to a zero-multiple flop.
+I parameterized the financial metric calculation (`filter_reliable_financials` / `engineer_financial_metrics` in `pipeline/transform.py` under Station 3: The Quality Filter) with the argument `treat_zero_revenue_as_missing: bool` to evaluate portfolio returns under both assumptions. For the baseline recommendation, any entry with zero or missing revenue is excluded from return-on-cost metrics rather than coerced to a zero-multiple flop.
 
 ## Alternatives considered
 

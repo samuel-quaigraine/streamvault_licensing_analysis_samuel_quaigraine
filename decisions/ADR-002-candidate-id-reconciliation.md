@@ -8,7 +8,7 @@
 The client provided `id_list.csv` containing 127 candidate rows assembled over four years from three conflicting sources: Adjoa's evaluation tracker, a spreadsheet inherited from Kwame's predecessor, and a batch emailed by a studio's licensing desk. The list contains malformed rows (blank line 69, negative ID `-1`, string `'N/A'`), an external IMDb identifier (`tt0468569`), exact duplicate IDs, and dead IDs returning 404 from the public API. A naive pipeline would either crash on unparseable data or silently drop rows, leaving Kwame unable to explain where 15 candidate titles went during a \$14M board review.
 
 ## Decision
-I designed a strict, multi-stage ingestion and reconciliation engine (`pipeline/load.py` and `pipeline/checks.py`) that audits every single row from 1 to 127. The engine explicitly logs every dropped identifier with its line number, raw string, and operational reason, producing a complete 6-stage reconciliation table in `data_findings.md`.
+I designed a strict, multi-stage dynamic extraction and reconciliation engine (`extract_candidate_ids` in `pipeline/extract.py` under Station 1: The Bouncer, coupled with `check_before_load` in `pipeline/checks.py`) that audits every single row from 1 to 127. The engine dynamically scans for empty or whitespace-only lines, checks positive integer validity, detects duplicate keys, and files 404s into the permanent Missing Box (`data/raw/dead_ids.json`). It explicitly logs every dropped identifier with its line number, raw string, and operational reason, producing a complete 6-stage reconciliation table in `data_findings.md`.
 
 ## Alternatives considered
 

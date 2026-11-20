@@ -8,11 +8,11 @@
 A TMDb API response is hierarchical: a movie details payload has scalar fields (`title`, `revenue`, `budget`), nested dictionary objects (`belongs_to_collection`), and nested arrays (`genres`, `cast`, `crew`). If a developer flattens cast members (averaging 70 actors per film) and joins that back to the movie table before computing financial totals, every film's revenue is multiplied by its cast count. In our dataset, this would fan out 112 films into 7,827 rows, artificially inflating total revenue from \$67.1B to over \$4.7 Trillion—a fatal analytical corruption.
 
 ## Decision
-I established a strict relational grain boundary in `pipeline/transform.py` and `pipeline/validate.py`:
+I established a strict relational grain boundary in `pipeline/transform.py` (`flatten_movie_details_and_credits` under Station 2: The Labeler) and `pipeline/validate.py`:
 1. **Films Analytical Table**: Fixed strictly at `# grain: one row per film` (112 rows). All financial KPIs, budgets, revenues, and return multiples are computed exclusively on this table.
 2. **Cast Table**: Fixed at `# grain: one row per film per cast member` (7,827 rows).
 3. **Crew Table**: Fixed at `# grain: one row per film per crew member` (24,932 rows).
-4. **Join Integrity**: Any join onto the film table must use `validate="one_to_one"` and assert `len(merged) == len(films)`, turning potential silent row multiplications into immediate loud errors.
+4. **Join Integrity**: Any join onto the film table must use `validate="one_to_one"` and assert `len(merged) == len(films)` via `safe_merge_one_to_one`, turning potential silent row multiplications into immediate loud errors.
 
 ## Alternatives considered
 

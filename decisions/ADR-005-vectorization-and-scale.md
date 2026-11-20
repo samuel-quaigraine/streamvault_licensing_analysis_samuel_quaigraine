@@ -8,7 +8,7 @@
 Kwame's analyst, Adjoa, will re-run this analysis quarterly on her laptop, sometimes live in executive meetings where slow scripts are unacceptable. Furthermore, next year's candidate list will quadruple from 127 to 500 titles. Traditional pandas workflows relying on row-by-row iteration (`iterrows()`, `itertuples()`, or row-wise `apply(axis=1)`) introduce high interpreter overhead that degrades linearly with large constants, risking execution lag as the catalog scales.
 
 ## Decision
-I replaced all row-wise loops with vectorized NumPy and pandas expressions (`np.where`, `np.select`, boolean indexing, and grouped aggregations) across `pipeline/transform.py` and `pipeline/checks.py`. Compute execution is completely isolated from network acquisition via local disk caching (`data/raw/`).
+I replaced all row-wise loops with vectorized NumPy and pandas expressions (`np.where`, `np.select`, boolean indexing, and grouped aggregations) across `pipeline/transform.py` and `pipeline/checks.py`. Compute execution is completely isolated from network acquisition via local disk caching (`data/raw/`). Furthermore, all required directories are dynamically auto-created via `pipeline/config.py` using `Path.mkdir(parents=True, exist_ok=True)` to guarantee zero setup failure on any operating system.
 
 ## Alternatives considered
 

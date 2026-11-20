@@ -8,7 +8,7 @@
 Finance VP Yaw strongly distrusts pre-2000 theatrical data due to historical inflation, currency exchange variability, and differences in legacy box office reporting standards. Conversely, half of Kwame's acquisitions team believes older evergreen classics (*Star Wars*, *The Godfather*, *Pulp Fiction*) offer immense return-on-cost value that modern big-budget films cannot match. Suppressing the pre-2000 data or failing to present both perspectives would cause the board review to derail over methodological disagreements.
 
 ## Decision
-I implemented dual-window KPI evaluation across the entire analytical model:
+I implemented dual-window KPI evaluation across the entire analytical model (`score_licensing_options` in `pipeline/transform.py` under Station 4: The Scorekeeper):
 1. **Window 1: All-Years Baseline** (112 titles: 96 Franchises, 16 Standalones).
 2. **Window 2: 2000-Onward Baseline** (71 titles: 63 Franchises, 8 Standalones).
 The pipeline evaluates whether the core strategic recommendation (Franchise Bundles vs. Standalone Titles) holds across both windows or flips, and reports the findings prominently.
