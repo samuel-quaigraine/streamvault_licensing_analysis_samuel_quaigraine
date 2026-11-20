@@ -1,4 +1,4 @@
-# ADR-002: Candidate ID Auditing, Dynamic Empty Row Detection, and 100% Reconciliation
+# ADR-001: Candidate ID Ingestion, Dynamic Empty Row Detection, and 100% Reconciliation
 
 - **Status:** Accepted
 - **Date:** October 31, 2026

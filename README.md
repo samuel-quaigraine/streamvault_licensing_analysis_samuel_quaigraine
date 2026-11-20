@@ -190,9 +190,9 @@ streamvault_licensing_analysis_samuel_quaigraine/
 │   └── processed/                    # Clean analytical datasets (films, cast, crew)
 │
 ├── decisions/                        # Architecture Decision Records (house format)
-│   ├── ADR-001-zero-revenue-handling.md
-│   ├── ADR-002-candidate-id-reconciliation.md
-│   ├── ADR-003-table-grain-and-join-strategy.md
+│   ├── ADR-001-candidate-id-reconciliation.md
+│   ├── ADR-002-table-grain-and-join-strategy.md
+│   ├── ADR-003-zero-revenue-handling.md
 │   ├── ADR-004-two-window-era-split.md
 │   └── ADR-005-vectorization-and-scale.md
 │

@@ -1,4 +1,4 @@
-# ADR-003: Strict Table Grain Boundaries, Talent Screening, and Negotiator Levers
+# ADR-002: Strict Table Grain Boundaries, Talent Screening, and Negotiator Levers
 
 - **Status:** Accepted
 - **Date:** October 31, 2026

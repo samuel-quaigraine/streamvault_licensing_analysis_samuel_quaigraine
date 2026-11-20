@@ -45,10 +45,13 @@ Even when Adjoa tests alternative cutoff years between 1990 and 2015 using our s
 ## 4. The Franchise Rollup Rule & Exposing the "Partial Bundle Trap"
 Studios sell franchises as all-or-nothing bundles. In `pipeline/transform.py` (`rank_franchise_bundles`), we evaluate entire collections together rather than cherry-picking individual sequels:
 1. **Whole-Bundle Economics**: We sum total revenue against total production budget across the entire series and track the `min_roi` (the weakest link in the chain).
-2. **The "Partial Bundle Trap"**:
-   - The candidate list contains several incomplete franchises: *Jaws* (only 1 film on the list out of 4), *The Terminator* (only 4 of 6), and *Alien* (only 4 of 6+).
+2. **Collection Completeness Methodology**:
+   - Collection completeness was audited by comparing candidate catalog counts against known theatrical series filmographies (domain knowledge) rather than an automated external query to TMDb's `/collection/{id}` endpoint.
+   - For complete series (*Harry Potter* [8], *The Dark Knight* [3], *The Lord of the Rings* [3]), all core canonical theatrical releases were verified present in `id_list.csv`.
+   - For partial series (*Jaws* [1 of 4], *Terminator* [4 of 6], *Alien* [4 of 6+]), we flag the missing sequels as a vital negotiation warning: Kwame must verify the distributor's proposed bundle package before pricing.
+3. **The "Partial Bundle Trap"**:
    - If Kwame prices a bundle based on *Jaws 1* (19x ROI), but Universal forces StreamVault to buy *Jaws 2*, *3-D*, and *The Revenge*, StreamVault absorbs massive dead weight.
-   - **The Defense:** We advise Kwame to focus upfront capital exclusively on **complete, audited series** where every entry is accounted for.
+   - **The Defense:** We advise Kwame to focus upfront capital exclusively on complete, audited series where every entry is accounted for.
 
 ---
 
@@ -69,7 +72,7 @@ Studios sell franchises as all-or-nothing bundles. In `pipeline/transform.py` (`
 ---
 
 ## 6. One-Paragraph Deal Note: Harry Potter Collection
-- **Valuation Cap:** Cap opening valuation at **$4.5M (32% of our total $14M licensing budget)**, preserving $9.5M headroom to secure a second franchise and the standalone shortlist.
+- **Valuation Framework:** Open negotiations at **$4.5M (32% of our total $14M licensing budget)**, with a strict walk-away ceiling of **40% ($5.6M)**. Relative to everything else, *Harry Potter* represents roughly one-third (33.8%) of the total box office volume across our top target slate ($7.8B out of $23.0B across top targets), justifying a 32% capital share while preserving $9.5M headroom for *The Dark Knight Trilogy*, *The Lord of the Rings*, and our five standalone picks.
 - **The Decisive Anchor Number:** **$970 Million average box office per film**, with its weakest entry still grossing **$795 Million**. In movie history, most series degrade by film 3. *Harry Potter* is an 8-car train where every single car is an engine, guaranteeing subscriber value across the entire bundle.
 
 ---

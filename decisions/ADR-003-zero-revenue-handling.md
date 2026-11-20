@@ -1,4 +1,4 @@
-# ADR-001: Zero-Revenue Handling, Value Definition, and Unverified Blind Spots
+# ADR-003: Zero-Revenue Handling, Value Definition, and Unverified Blind Spots
 
 - **Status:** Accepted
 - **Date:** October 31, 2026
@@ -39,7 +39,7 @@ We do not have StreamVault's internal viewer completion or subscriber retention 
 
 ### Option A: Treat all `$0` revenue as `0.0x` flops without checking
 - **What it would do:** Automatically treat every film missing revenue as a complete loss.
-- **Why we rejected it:** In our verified catalog of 112 titles, all 112 are major theatrical releases with complete box office records. However, on next year's 500-title list, smaller indie films may lack box office numbers. Forcing them to count as zero would unfairly penalize standalone films without proof that they actually lost money.
+- **Why we rejected it:** In our verified catalog of 112 titles, exactly **zero titles failed for $0 budget or $0 revenue** (all 112 represent major commercial theatrical releases with complete financial disclosures). However, on next year's 500-title list, smaller indie films may lack box office numbers. Forcing them to count as zero would unfairly penalize standalone films without proof that they actually lost money.
 
 ### Option B: Guess or estimate missing box office using genre averages
 - **What it would do:** Fill in missing revenues with the average box office of other action or comedy films.
@@ -52,7 +52,7 @@ To protect Kwame in the boardroom, we plainly state where public theatrical data
 
 1. **Studio Licensing Asking Prices**:
    - *The Reality:* TMDb records historical production costs and theatrical grosses, not current studio licensing rate cards.
-   - *What it costs Kwame:* If distributors demand more than 40% of the total budget ($5.6M+) for a single franchise bundle, Kwame risks budget exhaustion. **Negotiation rule:** Kwame must enforce a strict 40% walk-away threshold and pivot capital into the standalone shortlist if studios price gouge.
+   - *What it costs Kwame:* If distributors demand more than 40% of the total budget ($5.6M+) for a single franchise bundle, Kwame risks budget exhaustion. **Negotiation rule:** Kwame should open negotiations at 32% ($4.5M) for the anchor franchise (*Harry Potter*), and enforce a strict **40% walk-away ceiling ($5.6M)**, pivoting capital into the standalone shortlist if studios price gouge.
 2. **Actual Streaming Viewer Retention & Completion**:
    - *The Reality:* Theatrical box office demonstrates broad cultural reach, but does not guarantee repeat home streaming completions.
    - *What it costs Kwame:* High-grossing spectacle films with zero rewatch value could fail to reduce monthly subscriber churn.
@@ -63,8 +63,8 @@ To protect Kwame in the boardroom, we plainly state where public theatrical data
 ---
 
 ## 6. What This Means for Kwame and StreamVault
-- **Total Transparency in Front of Finance:** When Finance VP Yaw asks how we handled missing box office numbers, Kwame can show him the results under both rules side-by-side.
-- **Stable Finding:** Because all 112 verified titles in our candidate pool have complete box office records, the baseline numbers hold true: franchise films deliver a median return of **5.62x** compared to **3.84x** for standalone titles.
+- **Total Transparency in Front of Finance:** When Finance VP Yaw asks how we handled missing box office numbers, Kwame can show him that all 112 titles have complete verified box office data, and that our automated guard protects future batches.
+- **Stable Finding:** Franchise films deliver a median return of **5.62x** compared to **3.84x** for standalone titles in All-Years, and **5.05x vs 3.84x** in the modern era.
 
 ---
 
