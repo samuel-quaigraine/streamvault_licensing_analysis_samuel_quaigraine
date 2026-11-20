@@ -1,7 +1,7 @@
 # Data findings — StreamVault Content Acquisition
 
 ## Summary
-An exhaustive audit of the 127 candidate film identifiers provided for StreamVault's \$14M content acquisition review revealed severe data hygiene issues across all historical intake streams. The candidate list contained missing records, invalid data types, duplicate entries, foreign platform identifiers, and permanently deprecated titles. Following systematic validation, deduplication, and verification against live data systems, exactly 112 titles were verified and incorporated into the analytical baseline. Every single identifier from the original 127 records is fully accounted for.
+An exhaustive audit of the 127 candidate film identifiers provided for StreamVault's $14M content acquisition review revealed severe data hygiene issues across all historical intake streams. The candidate list contained missing records, invalid data types, duplicate entries, foreign platform identifiers, and permanently deprecated titles. Following systematic validation, deduplication, and verification against live data systems, exactly 112 titles were verified and incorporated into the analytical baseline. Every single identifier from the original 127 records is fully accounted for.
 
 ---
 
@@ -23,10 +23,10 @@ An exhaustive audit of the 127 candidate film identifiers provided for StreamVau
 The anomalies discovered map directly into the defensive stations of the StreamVault factory line (`h3lp/mathematical_formulation_of_the_streamvault_pipeline.md`):
 
 1. **Station 1: The Bouncer (`pipeline/extract.py`)**: Intercepts **F-01** (routes 404s to `dead_ids.json`), **F-02** (dynamically catches blank rows, negative values, and text), **F-03** (resolves IMDb IDs), and **F-04** (drops duplicate admission passes).
-2. **Station 2: The Labeler (`pipeline/transform.py`)**: Unpacks nested JSON into 3 distinct relational grains (`films`, `cast`, `crew`), mathematically preventing a catastrophic \$4.7 Trillion revenue fan-out.
-3. **Station 3: The Quality Filter (`pipeline/transform.py`)**: Parameterizes \$0 money handling and slices the portfolio across both era windows (All-Years vs. 2000-Onward).
+2. **Station 2: The Labeler (`pipeline/transform.py`)**: Unpacks nested JSON into 3 distinct relational grains (`films`, `cast`, `crew`), mathematically preventing a catastrophic $4.7 Trillion revenue fan-out.
+3. **Station 3: The Quality Filter (`pipeline/transform.py`)**: Parameterizes $0 money handling and slices the portfolio across both era windows (All-Years vs. 2000-Onward).
 4. **Station 4: The Scorekeeper (`pipeline/transform.py`)**: Neutralizes **F-05** (extreme outliers like *Avengers: Endgame*) by emphasizing median returns over skewed arithmetic means.
-5. **Station 5: The Talent Scout (`pipeline/transform.py`)**: Filters out lucky one-hit wonders using the fairness rule (minimum $\ge 2$ appearances) before recommending director and actor levers.
+5. **Station 5: The Talent Scout (`pipeline/transform.py`)**: Filters out lucky one-hit wonders using the fairness rule (minimum >= 2 appearances) before recommending director and actor levers.
 
 ---
 
@@ -65,8 +65,8 @@ The anomalies discovered map directly into the defensive stations of the StreamV
 - **Residual risk:** None. The unique catalog accurately reflects 112 unique films.
 
 ### F-05: Skewness from Extreme Revenue Outliers — Severity: Low
-- **What it is:** *The Avengers* (\$1.52B), *Avengers: Infinity War* (\$2.05B), and *Avengers: Endgame* (\$2.80B) represent extreme positive outliers on box office gross.
-- **How I detected it:** Interquartile range (IQR) distribution profiling where values exceeded $Q3 + 1.5 \times IQR$ in `pipeline/checks.py`.
+- **What it is:** *The Avengers* ($1.52B), *Avengers: Infinity War* ($2.05B), and *Avengers: Endgame* ($2.80B) represent extreme positive outliers on box office gross.
+- **How I detected it:** Interquartile range (IQR) distribution profiling where values exceeded `Q3 + (1.5 * IQR)` in `pipeline/checks.py`.
 - **Scale:** 3 blockbuster titles in the franchise group.
 - **Effect on the client's number:** While the mean franchise return is 8.54x, the median is 5.62x. Relying on the mean would overstate expected returns for typical franchise acquisitions.
 - **What I did about it:** Reported median return multiples alongside means in all business recommendations to ensure decisions are robust against outlier distortion.
@@ -78,9 +78,9 @@ The anomalies discovered map directly into the defensive stations of the StreamV
 
 | Apparent problem | Why it looks wrong | Why it is actually fine |
 |---|---|---|
-| Zero \$0 Revenue for 112 Acquired Titles | Most movie datasets suffer from missing or \$0 box office figures. | The 112 successfully acquired titles in this specific candidate list represent major theatrical releases where TMDb holds complete, verified worldwide box office and budget records. |
+| Zero $0 Revenue for 112 Acquired Titles | Most movie datasets suffer from missing or $0 box office figures. | The 112 successfully acquired titles in this specific candidate list represent major theatrical releases where TMDb holds complete, verified worldwide box office and budget records. |
 | Standalone Titles Outscore Franchises on Ratings (8.37 vs 7.46) | If franchises generate higher box office, one might expect higher audience review scores. | Standalone titles in this list (*The Shawshank Redemption*, *Pulp Fiction*, *Schindler's List*, *Spirited Away*) are universally acclaimed critical masterpieces, whereas franchise bundles include mid-tier sequels that dilute average ratings despite strong box office. |
-| Franchise Revenue Volatility (Min \$104M to Max \$2.8B) | Large spread between the lowest-grossing sequel and top-tier blockbuster. | Commercial reality of studio film series; audience demand varies across sequels, which reinforces the necessity of negotiating bundle discounts rather than paying peak rates for middle entries. |
+| Franchise Revenue Volatility (Min $104M to Max $2.8B) | Large spread between the lowest-grossing sequel and top-tier blockbuster. | Commercial reality of studio film series; audience demand varies across sequels, which reinforces the necessity of negotiating bundle discounts rather than paying peak rates for middle entries. |
 
 ---
 

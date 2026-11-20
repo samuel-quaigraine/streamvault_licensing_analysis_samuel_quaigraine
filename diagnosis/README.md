@@ -8,7 +8,7 @@ This directory provides the technical guide, code patterns, and execution script
 
 The brief defines data engineering not merely as computing numbers, but as deciding what the numbers should be, discovering what is wrong with the source, and defending both to a stakeholder whose job depends on the answer.
 
-Kwame Boateng is entering a board review with \$14M at stake. The candidate list (`id_list.csv`) was compiled over four years across three unverified sources:
+Kwame Boateng is entering a board review with $14M at stake. The candidate list (`id_list.csv`) was compiled over four years across three unverified sources:
 1. Adjoa's evaluation tracker
 2. An inherited spreadsheet from Kwame's predecessor
 3. Ad-hoc batches emailed from studio licensing desks
@@ -113,7 +113,7 @@ else:
 | **5. Live Catalog 404s** | **112** | -5 | Deprecated/obsolete IDs: `7733901`, `8471293`, `8471294`, `9412887`, `9412888`. |
 | **6. Final Verified Catalog** | **112** | 0 | Verified analytical dataset strictly at one row per film. |
 
-**Total Accounting**: $112 + 5 + 6 + 1 + 3 = 127$ rows. Zero unaccounted gaps!
+**Total Accounting**: 112 + 5 + 6 + 1 + 3 = 127 rows. Zero unaccounted gaps!
 
 ---
 
@@ -122,28 +122,28 @@ else:
 Data profiling was executed in [`pipeline/checks.py`](file:///c:/Users/SamuelQuaigraine/workspace2/streamvault_licensing_analysis_samuel_quaigraine/pipeline/checks.py) to inspect distributions and detect disguised nulls.
 
 ### Disguised Nulls ($0 Revenue & Budget)
-In film datasets, unrecorded box office often appears as \$0.00 rather than `NaN`.
-- In our verified 112 titles, exactly **0 films reported \$0 revenue** and **0 films reported \$0 budget**.
+In film datasets, unrecorded box office often appears as $0.00 rather than `NaN`.
+- In our verified 112 titles, exactly **0 films reported $0 revenue** and **0 films reported $0 budget**.
 - All 112 verified titles represent major theatrical releases with complete financial reporting.
 
 ### Outlier Detection (Interquartile Range Rule)
 We used the standard Tukey Boxplot method:
-$$\text{IQR} = Q_3 - Q_1$$
-$$\text{Upper Fence} = Q_3 + 1.5 \times \text{IQR}$$
-$$\text{Extreme Fence} = Q_3 + 3.0 \times \text{IQR}$$
+- `IQR = Q3 - Q1`
+- `Upper Fence = Q3 + (1.5 * IQR)`
+- `Extreme Fence = Q3 + (3.0 * IQR)`
 
 For worldwide gross:
-- $Q_1$ (25th Percentile): **\$338.4 Million**
-- $Q_2$ (Median): **\$535.8 Million**
-- $Q_3$ (75th Percentile): **\$895.9 Million**
-- $\text{IQR}$: **\$557.5 Million**
-- $\text{Upper Outlier Fence}$: $\$895.9\text{M} + 1.5 \times \$557.5\text{M} = \mathbf{\$1.732\text{ Billion}}$
+- Q1 (25th Percentile): **$338.4 Million**
+- Q2 (Median): **$535.8 Million**
+- Q3 (75th Percentile): **$895.9 Million**
+- IQR: **$557.5 Million**
+- Upper Outlier Fence: `$895.9M + (1.5 * $557.5M) = $1.732 Billion`
 
 Two extreme outliers exceeded this fence:
-1. *Avengers: Infinity War* (\$2.05 Billion gross)
-2. *Avengers: Endgame* (\$2.80 Billion gross)
+1. *Avengers: Infinity War* ($2.05 Billion gross)
+2. *Avengers: Endgame* ($2.80 Billion gross)
 
-**Strategic Implication**: The presence of multi-billion dollar outliers inflates the mean return to 8.54x, while the median is 5.62x. Relying on means would mislead Kwame into expecting \$800M+ returns on every acquisition. We anchored Kwame's strategy on the **median return**, which is immune to extreme skew.
+**Strategic Implication**: The presence of multi-billion dollar outliers inflates the mean return to 8.54x, while the median is 5.62x. Relying on means would mislead Kwame into expecting $800M+ returns on every acquisition. We anchored Kwame's strategy on the **median return**, which is immune to extreme skew.
 
 ---
 
@@ -156,8 +156,9 @@ In [`pipeline/validate.py`](file:///c:/Users/SamuelQuaigraine/workspace2/streamv
 
 ### Why This Matters:
 A film has an average of 70 cast members. If a developer joins the cast table back to the film table before totaling revenue:
-$$\text{Inflated Revenue} = \sum (\text{Revenue} \times \text{Cast Count}) \approx 70 \times \text{Actual Revenue}$$
-In our dataset, this would explode total revenue from **\$67.1 Billion to over \$4.7 Trillion**!
+`Inflated Revenue = Sum(Revenue * Cast Count) ~ 70 * Actual Revenue`
+
+In our dataset, this would explode total revenue from **$67.1 Billion to over $4.7 Trillion**!
 
 To prevent this silent corruption:
 ```python

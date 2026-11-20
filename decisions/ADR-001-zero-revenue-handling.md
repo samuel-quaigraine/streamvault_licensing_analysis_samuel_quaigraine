@@ -1,32 +1,50 @@
-# ADR-001: Parameterized Zero-Revenue and Missing Return-on-Cost Treatment
+# ADR-001: Parameterized Zero-Revenue and Missing Money Handling
 
 - **Status:** Accepted
-- **Date:** 2026-10-31
-- **Decision owner:** Samuel Quaigraine
+- **Date:** October 31, 2026
+- **Decision Owner:** Samuel Quaigraine
 
-## Context
-In film performance analytics, unrecorded or missing box office numbers often appear as \$0.00 rather than explicit nulls. When computing return-on-cost ($\text{Revenue} / \text{Budget}$), treating \$0 as genuine revenue drags the group mean and median downward as an artificial total loss. Conversely, discarding \$0 entries could artificially inflate performance by omitting genuine box office flops. Kwame is presenting to the board and Finance VP Yaw, both of whom will scrutinize how missing data was handled.
+---
 
-## Decision
-I parameterized the financial metric calculation (`filter_reliable_financials` / `engineer_financial_metrics` in `pipeline/transform.py` under Station 3: The Quality Filter) with the argument `treat_zero_revenue_as_missing: bool` to evaluate portfolio returns under both assumptions. For the baseline recommendation, any entry with zero or missing revenue is excluded from return-on-cost metrics rather than coerced to a zero-multiple flop.
+## 1. The Context & The Problem
+In public movie databases like TMDb, when a film shows `$0` for budget or revenue, it almost never means the movie cost `$0` to make or made `$0` at the box office. In reality, it means **nobody typed the numbers into the database**.
 
-## Alternatives considered
+This creates a serious business challenge for StreamVault's $14M licensing decision:
+- If we naively calculate return as `Revenue / Budget` and treat `$0` as real money, a movie with a $10M budget and unrecorded revenue gets scored as a `0.0x` return. We would be falsely punishing a great film as a catastrophic commercial failure!
+- On the other hand, if we throw out every film with missing money numbers, someone might accuse us of cherry-picking and hiding real box office flops.
 
-### Alternative A: Coerce all \$0 revenues to 0.0x return
-- **How it would work:** Every film with budget > 0 and revenue == 0 is assigned a 0.0 return-on-cost multiple.
-- **Why it is attractive:** Simple to implement; treats non-reported revenue as complete commercial failure.
-- **Why rejected:** In our verified dataset of 112 titles, exactly 0 films reported \$0 revenue (all 112 are major theatrical releases with complete box office records). However, on next year's 500-title list, smaller indie films may lack box office tracking; coercing them to zero flops would severely penalize standalone titles without proof of actual failure.
+Kwame is presenting to the board and Finance VP Yaw, both of whom will scrutinize how we handled missing money data.
 
-### Alternative B: Impute missing box office using genre medians
-- **How it would work:** Fill missing revenues with the median box office of that film's primary genre.
-- **Why it is attractive:** Preserves sample size across all titles.
-- **Why rejected:** Fabricates financial figures for a \$14M capital commitment; the board would reject estimated revenue in an evidence-based review.
+---
 
-## Consequences
-- **What this buys:** Defensibility and transparency in front of Finance. We can demonstrate the exact impact of both assumptions instantly.
-- **What this costs:** Requires maintaining parameterized logic in the pipeline rather than hardcoding a single cleaning path.
-- **What it costs the client if I am wrong:** If unrecorded box office titles on larger lists were true catastrophic losses that StreamVault buys, excluding them would make those acquisitions appear artificially safe. However, because our candidate list has verified box office across all 112 films, the baseline multiple (5.62x franchise median vs 3.84x standalone median) holds with zero distortion.
-- **What would make me revisit this:** If distributor audit records confirm that unlisted titles were theatrical releases that failed to report box office due to sub-threshold theatrical performance.
+## 2. The Decision We Made
+We built a flexible, parameterized system in `pipeline/transform.py` (`filter_reliable_financials`, Station 3: The Quality Filter) that allows Kwame and Adjoa to test the data under **both** assumptions:
 
-## What this survives
-This decision survives Adjoa running the pipeline next year on 500 titles: whether future titles contain 5 or 50 missing revenue figures, the pipeline will compute both metrics side-by-side and highlight any recommendation flip automatically.
+1. **Baseline Rule (`treat_zero_revenue_as_missing = True`)**: 
+   We treat `$0` revenue as missing unrecorded data (`NaN`). These films are excluded from return-on-cost and profit averages, but are still counted in catalog totals and audience rating summaries.
+2. **Sensitivity Rule (`treat_zero_revenue_as_missing = False`)**:
+   We treat `$0` revenue as an actual commercial flop (`0.0x` return) to see if Kwame's strategy still holds under the harshest possible scenario.
+
+---
+
+## 3. Other Options We Considered and Rejected
+
+### Option A: Treat all `$0` revenue as `0.0x` flops without checking
+- **What it would do:** Automatically treat every film missing revenue as a complete loss.
+- **Why we rejected it:** In our verified catalog of 112 titles, all 112 are major theatrical releases with complete box office records. However, on next year's 500-title list, smaller indie films may lack box office numbers. Forcing them to count as zero would unfairly penalize standalone films without proof that they actually lost money.
+
+### Option B: Guess or estimate missing box office using genre averages
+- **What it would do:** Fill in missing revenues with the average box office of other action or comedy films.
+- **Why we rejected it:** We are advising on a real $14M cash commitment. Making up numbers or guessing box office would destroy our credibility the moment Finance looked at the math.
+
+---
+
+## 4. What This Means for Kwame and StreamVault
+- **Total Transparency in Front of Finance:** When Finance VP Yaw asks how we handled missing box office numbers, Kwame can show him the results under both rules side-by-side.
+- **Stable Finding:** Because all 112 verified titles in our candidate pool have complete box office records, the baseline numbers hold true: franchise films deliver a median return of **5.62x** compared to **3.84x** for standalone titles.
+- **Risk if Wrong:** If future films with unrecorded revenues were true box office disasters, our baseline might look slightly more optimistic. That is exactly why we built the sensitivity toggle so Kwame can test the worst-case scenario at any moment.
+
+---
+
+## 5. How This Protects Adjoa Next Year (500 Titles)
+Next year, when Adjoa reruns this pipeline on 500 titles by herself, she will not need to edit code or rewrite formulas. Whether the new batch has 5 missing titles or 50, the pipeline will automatically process them, calculate both scenarios, and immediately alert her if the recommendation flips.

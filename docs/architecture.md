@@ -152,15 +152,15 @@ flowchart TD
 - **`original_title`** (String): Original language title.
 - **`release_date`** (Date String, `YYYY-MM-DD`): Theatrical premiere date.
 - **`release_year`** (Integer): Extracted 4-digit release year.
-- **`era`** (Categorical): `"2000-Onward"` if release year $\ge 2000$, else `"Pre-2000"`.
+- **`era`** (Categorical): `"2000-Onward"` if release year >= 2000, else `"Pre-2000"`.
 - **`budget`** (Float, USD): Production budget as reported by studio filings.
 - **`revenue`** (Float, USD): Worldwide cumulative theatrical box office gross.
-- **`profit`** (Float, USD): Net gross $\text{Revenue} - \text{Budget}$.
-- **`return_on_cost`** (Float): Return multiple $\text{Revenue} / \text{Budget}$.
+- **`profit`** (Float, USD): Net gross `Revenue - Budget`.
+- **`return_on_cost`** (Float): Return multiple `Revenue / Budget`.
 - **`commercial_tier`** (Categorical): Categorization:
-  - `Blockbuster Hit`: $\text{Return} \ge 2.5\times$
-  - `Moderate Return`: $1.0\times \le \text{Return} < 2.5\times$
-  - `Flop / Loss`: $\text{Return} < 1.0\times$
+  - `Blockbuster Hit`: `Return >= 2.5x`
+  - `Moderate Return`: `1.0x <= Return < 2.5x`
+  - `Flop / Loss`: `Return < 1.0x`
 - **`runtime`** (Float, Minutes): Feature film duration in minutes.
 - **`vote_average`** (Float): Audience score average on a 10-point scale.
 - **`vote_count`** (Integer): Total audience ratings submitted.

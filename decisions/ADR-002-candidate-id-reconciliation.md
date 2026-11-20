@@ -1,32 +1,65 @@
-# ADR-002: Candidate Identifier Audit, Blank Row 69 Handling, and Multi-Stage Reconciliation
+# ADR-002: Candidate ID Auditing, Dynamic Empty Row Detection, and 100% Reconciliation
 
 - **Status:** Accepted
-- **Date:** 2026-10-31
-- **Decision owner:** Samuel Quaigraine
+- **Date:** October 31, 2026
+- **Decision Owner:** Samuel Quaigraine
 
-## Context
-The client provided `id_list.csv` containing 127 candidate rows assembled over four years from three conflicting sources: Adjoa's evaluation tracker, a spreadsheet inherited from Kwame's predecessor, and a batch emailed by a studio's licensing desk. The list contains malformed rows (blank line 69, negative ID `-1`, string `'N/A'`), an external IMDb identifier (`tt0468569`), exact duplicate IDs, and dead IDs returning 404 from the public API. A naive pipeline would either crash on unparseable data or silently drop rows, leaving Kwame unable to explain where 15 candidate titles went during a \$14M board review.
+---
 
-## Decision
-I designed a strict, multi-stage dynamic extraction and reconciliation engine (`extract_candidate_ids` in `pipeline/extract.py` under Station 1: The Bouncer, coupled with `check_before_load` in `pipeline/checks.py`) that audits every single row from 1 to 127. The engine dynamically scans for empty or whitespace-only lines, checks positive integer validity, detects duplicate keys, and files 404s into the permanent Missing Box (`data/raw/dead_ids.json`). It explicitly logs every dropped identifier with its line number, raw string, and operational reason, producing a complete 6-stage reconciliation table in `data_findings.md`.
+## 1. The Context & The Problem
+The candidate list of 127 movie IDs (`id_list.csv`) was not a clean file. It was assembled over four years from three conflicting sources: Adjoa's evaluation tracker, an old spreadsheet inherited from Kwame's predecessor, and a batch emailed by a studio licensing desk.
 
-## Alternatives considered
+Nobody had cleaned it up. When we opened it, we found:
+- An entirely blank line (line 69).
+- A negative number (`-1` on line 30).
+- A literal text string (`'N/A'` on line 111).
+- An external IMDb code (`tt0468569` on line 95) instead of a numeric TMDb ID.
+- Six movie IDs entered twice (exact duplicates).
+- Five old IDs that returned `404 Not Found` because studios had retired them.
 
-### Alternative A: Silent drop using `pd.read_csv` with `dropna()` and `drop_duplicates()`
-- **How it would work:** Load the file directly and apply default Pandas filtering.
-- **Why it is attractive:** Minimal code; runs in one line.
-- **Why rejected:** Completely fails the rubric requirement for a full accounting of all 127 identifiers. Silently dropping 15 rows creates an unverified gap that Finance will exploit to challenge Kwame's credibility.
+A naive pipeline would either crash on the blank row or quietly drop records without telling anyone. But during a $14M board meeting, if Kwame says he started with 127 titles and ends with 112, Finance will ask: *"What happened to the missing 15 titles?"* If Kwame cannot explain every single row, he loses credibility immediately.
 
-### Alternative B: Stop-and-raise on first invalid line
-- **How it would work:** Raise an exception as soon as line 30 (`-1`) or line 69 (blank) is encountered.
-- **Why it is attractive:** Strict and forces clean input data.
-- **Why rejected:** Kwame is unavailable for follow-up questions before the review, and the brief explicitly mandates that the pipeline must run top-to-bottom without manual edits.
+---
 
-## Consequences
-- **What this buys:** Complete defensibility. Every single one of the 127 rows is accounted for across 6 distinct stages: 127 raw -> 124 format clean -> 123 external mapped -> 117 deduplicated -> 112 acquired -> 112 analytical.
-- **What this costs:** Additional parsing overhead and maintaining an audit registry of exclusions.
-- **What it costs the client if I am wrong:** If any of the five 404 IDs (`7733901`, `8471293`, `8471294`, `9412887`, `9412888`) was an intended blockbuster that was simply miskeyed in the spreadsheet, StreamVault misses out on evaluating it until the licensing desk retrieves the correct TMDb ID.
-- **What would make me revisit this:** If the studio licensing desk provides an errata mapping sheet correcting the 5 dead IDs to active catalog entries.
+## 2. The Decision We Made
+We built a strict, dynamic two-part auditing engine (Station 1: The Bouncer in `pipeline/extract.py`, verified by the Pre-Load QA Gate in `pipeline/checks.py`):
 
-## What this survives
-This decision survives Adjoa running next year's 500-title list without engineer support: any malformed row, duplicate, or dead ID in future batches will be captured cleanly and reported in the audit table without aborting the pipeline.
+1. **Dynamic Door Scanner (No Hardcoded Line Numbers)**:
+   The code inspects every single line dynamically. It scans for blank or whitespace-only rows, checks whether values can be converted to positive integers, tracks repeated ticket numbers using a tracking set, and logs the exact line number and reason for every drop.
+2. **The 404 Missing Box**:
+   When TMDb confirms an ID no longer exists, the pipeline puts it in a permanent file (`dead_ids.json`) and manifest log rather than crashing.
+3. **100% Accounting Guarantee**:
+   Every single one of the 127 rows is mathematically accounted for:
+   `127 Raw Candidates = 112 Verified Films + 15 Accounted-For Drops`
+
+---
+
+## 3. Other Options We Considered and Rejected
+
+### Option A: Silently drop bad rows using standard `dropna()` and `drop_duplicates()`
+- **What it would do:** Filter out bad rows silently in one or two lines of code.
+- **Why we rejected it:** This creates an invisible gap. If 15 titles vanish with no audit trail, Kwame cannot defend the numbers in the room.
+
+### Option B: Stop and crash the program on the first bad row
+- **What it would do:** Stop the script immediately with an error when it sees line 30 (`-1`) or line 69 (blank).
+- **Why we rejected it:** Kwame is unavailable for questions before the board review. The brief explicitly states the pipeline must run from start to finish without needing manual file edits.
+
+---
+
+## 4. The 6-Stage Reconciliation Funnel
+Every single row is tracked across 6 clear stages:
+
+| Stage | Rows Remaining | Change | What Happened |
+|---|---|---|---|
+| **1. Raw CSV Input** | **127** | 0 | The starting candidate list from `id_list.csv`. |
+| **2. Dynamic Format Check** | **124** | -3 | Dynamically removed blank line 69, negative ID `-1`, and `'N/A'` text. |
+| **3. External ID Resolution** | **123** | -1 | IMDb code `tt0468569` resolved to TMDb ID `155` (*The Dark Knight*), which was already on line 2. |
+| **4. Exact Deduplication** | **117** | -6 | Removed repeated movie IDs (`155`, `278`, `550`, `603`, `680`, `1891`). |
+| **5. Live Catalog 404s** | **112** | -5 | Five retired IDs (`7733901`, `8471293`, `8471294`, `9412887`, `9412888`) placed in the Missing Box. |
+| **6. Final Verified Catalog** | **112** | 0 | Exactly 112 clean, verified commercial releases ready for analysis. |
+
+---
+
+## 5. What This Means for Kwame and Adjoa
+- **100% Defense Against Finance**: Kwame has a crystal-clear, 1-page paper trail showing where every title went.
+- **Turnkey Scaling for Next Year**: Next year, when Adjoa runs the pipeline on 500 titles, any blank lines, duplicate rows, or retired IDs will be caught dynamically, audited, and logged without her touching a line of code.

@@ -1,6 +1,6 @@
 # StreamVault Content Acquisition & Licensing Analysis
 
-Welcome to the **StreamVault Content Acquisition Pipeline**. This repository contains the complete data engineering workflow, statistical models, and executive decision documentation designed to support **Kwame Boateng, VP of Content Acquisition**, in allocating StreamVault's **\$14 Million licensing budget** at the upcoming board review on October 31.
+Welcome to the **StreamVault Content Acquisition Pipeline**. This repository contains the complete data engineering workflow, statistical models, and executive decision documentation designed to support **Kwame Boateng, VP of Content Acquisition**, in allocating StreamVault's **$14 Million licensing budget** at the upcoming board review on October 31.
 
 ---
 
@@ -23,8 +23,8 @@ This pipeline provides verifiable, reproducible evidence that resolves the inter
   - **2000-Onward Window (Finance View)**: Franchise median return remains higher at **5.1x** versus **3.8x** for standalones.
 - **The Recommendation Never Flips**: Across any cutoff year tested between 1990 and 2015, franchises consistently deliver a 1.2x to 1.8x return advantage, completely defusing Finance's skepticism.
 - **Recommended Portfolio Spend**:
-  - **70% (\$9.8M) on Top Franchise Bundles**: Anchor the catalog with the *Harry Potter Collection* (8 films, \$7.8B gross, 6.2x return) and *The Dark Knight Trilogy* (3 films, \$2.5B gross, 4.3x return).
-  - **30% (\$4.2M) on Top Standalones**: Cherry-pick modern prestige hits: *Inception* (5.2x), *Interstellar* (4.5x), *The Departed* (3.2x), *Memento* (4.5x), and *Spirited Away* (14.5x).
+  - **70% ($9.8M) on Top Franchise Bundles**: Anchor the catalog with the *Harry Potter Collection* (8 films, $7.8B gross, 6.2x return) and *The Dark Knight Trilogy* (3 films, $2.5B gross, 4.3x return).
+  - **30% ($4.2M) on Top Standalones**: Cherry-pick modern prestige hits: *Inception* (5.2x), *Interstellar* (4.5x), *The Departed* (3.2x), *Memento* (4.5x), and *Spirited Away* (14.5x).
 
 ---
 
