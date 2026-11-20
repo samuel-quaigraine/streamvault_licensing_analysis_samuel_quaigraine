@@ -27,7 +27,7 @@ Commit 70% of your budget ($9.8M) to secure two premier franchise bundles and re
    - Open valuation at $4.5M (32% of total capital, reflecting roughly one-third of our target slate's box office volume), with a strict 40% ($5.6M) walk-away ceiling to preserve $9.5M headroom for the slate. The decisive anchor metric is its **$970M average box office per title**, with the lowest-performing entry still grossing $795M.
 
 ## What I could not stand behind
-All figures reflect an audited catalog snapshot on October 31, 2026. This analysis tracks theatrical gross and production cost; it cannot verify:
-1. **Actual Studio Asking Prices**: Catalog data shows production costs, not distributor rate cards. Walk away if any bundle exceeds our 40% budget ceiling ($5.6M).
-2. **Streaming Viewer Completion**: Theatrical box office is a proxy for audience demand, not home completion.
-3. **Regional Rights Availability**: Rivals may hold active exclusive windows. Confirm territorial clearance before signing deal memos.
+Public data tracks past theater tickets, not studio contracts. Keep three practical risks in mind:
+1. **Studio Asking Prices**: Data shows production budgets, not distributor rate cards. If studios demand over 40% ($5.6M) for Harry Potter, walk away—overpaying exhausts your slate.
+2. **Home Streaming Completion**: Theatrical hits prove broad awareness, not repeat viewing. One-watch spectacle films will not stop monthly subscriber cancellations.
+3. **Regional Streaming Rights**: Rivals may hold active exclusive windows. Have legal confirm territory clearance before signing deal memos so you never buy unstreamable titles.
