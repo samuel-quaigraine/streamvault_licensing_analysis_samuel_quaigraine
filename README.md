@@ -220,14 +220,22 @@ streamvault_licensing_analysis_samuel_quaigraine/
 │   ├── candidate_reconciliation.csv  # 127-line audit ledger
 │   └── profiling_summary.json        # Schema, null, and financial summary
 │
-├── tests/                            # Automated test suite (pytest)
-│   ├── test_loader.py                # Candidate audit and line 69 assertions
-│   ├── test_transform.py             # Grain invariants and financial calculations
-│   └── test_validate.py              # Join integrity and fan-out guards
+├── tests/                            # Automated test suite (26 tests, pytest)
+│   ├── test_loader.py                # Candidate audit and line 69 assertions (4 tests)
+│   ├── test_transform.py             # Grain invariants and financial calculations (5 tests)
+│   ├── test_validate.py              # Join integrity and fan-out guards (4 tests)
+│   ├── test_scale.py                 # Scalability, vectorization & 500-title benchmarks (5 tests)
+│   ├── test_tool.py                  # Executive scenario CLI & sensitivity tables (4 tests)
+│   └── test_pipeline_e2e.py          # Full pipeline offline integration & artifact assertions (4 tests)
 │
 ├── run_pipeline.py                   # Master script executing pipeline end-to-end
+├── run_all.py                        # Master test & execution orchestrator (8 phases)
+├── run_all.sh                        # Shell runner for Linux / macOS / Git Bash
+├── run_all.ps1                       # PowerShell runner for Windows
+├── run_all.bat                       # Command Prompt batch runner for Windows
 ├── evaluate_scale.py                 # Compute benchmark & 500-title scale test
 ├── streamvault_tool.py               # Interactive scenario CLI (Deliverable 5)
+├── generate_charts.py                # Visual trend chart generation script
 │
 ├── data_findings.md                  # Deliverable 1: Data diagnosis & reconciliation
 ├── client_memo.md                    # Deliverable 4: 1-page executive memo to Kwame
@@ -314,6 +322,22 @@ python generate_charts.py
    TMDB_API_READ_ACCESS_TOKEN=your_actual_token_here
    ```
 
+5. **Run the Full Suite with One Command**:
+   Execute the complete 8-phase battery (pre-flight checks, 26 automated tests, ETL pipeline, data diagnosis, scalability benchmark, strategy CLI, visual charts, and repository hygiene gate):
+   ```bash
+   # On macOS / Linux / Git Bash:
+   ./run_all.sh
+
+   # On Windows PowerShell:
+   .\run_all.ps1
+
+   # On Windows Command Prompt:
+   run_all.bat
+
+   # Cross-platform Python runner:
+   python run_all.py
+   ```
+
 ---
 
 > [!NOTE]
@@ -375,11 +399,18 @@ Next year, when Kwame's analyst Adjoa receives 500 titles:
 
 ## 11. Running Automated Tests
 
-Run the full automated test suite using `pytest`:
+Run the complete automated test suite (26 tests) using `pytest`:
 ```bash
-python -m pytest tests/
+python -m pytest tests/ -v
 ```
-All tests verify candidate parsing, line 69 empty row handling, grain preservation, and join validations.
+
+### Test Suite Architecture (26 Automated Tests across 6 Modules):
+1. **`tests/test_loader.py` (4 tests)**: Verifies 127 candidate lines, explicit empty line 69 detection, negative ID `-1`, string `'N/A'`, IMDb ID `tt0468569`, and 6 exact duplicates.
+2. **`tests/test_transform.py` (5 tests)**: Verifies `# grain: one row per film` uniqueness, parameterized $0 revenue filtering, dual-window KPI calculations, whole-bundle rankings with `min_roi` weakest-link floors, and the fairness talent threshold (minimum $\ge 2$ appearances).
+3. **`tests/test_validate.py` (4 tests)**: Verifies `safe_merge_one_to_one` guards, detects simulated fan-out multipliers, and tests row conservation pre-load QA gates ($127 = 112 + 15$).
+4. **`tests/test_scale.py` (5 tests)**: Asserts that vectorized NumPy is $\ge 10\times$ faster than row-wise `apply(axis=1)`, proves next year's 500-title workload runs in $<50\text{ ms}$ CPU time, validates $O(N)$ linear complexity up to 5,000 titles ($<250\text{ ms}$), and verifies memory consumption $<15\text{ MB}$.
+5. **`tests/test_tool.py` (4 tests)**: Verifies the sensitivity cutoff table across all 6 era years (1990 to 2015), tests $14M 70/30 portfolio allocations ($9.80M / $4.20M), custom allocations, and CLI flag executions.
+6. **`tests/test_pipeline_e2e.py` (4 tests)**: Verifies complete offline pipeline execution, asserts all 8 deliverable output files exist in `output/` with valid row counts (112 films, 7,827 cast, 24,932 crew, 6-stage reconciliation summary), and validates 0 disguised nulls in `output/profiling_summary.json`.
 
 ---
 
