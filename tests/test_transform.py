@@ -13,7 +13,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from pipeline.config import PROCESSED_DIR
+from pipeline.config import PROCESSED_DIR, OUTPUT_DIR
 from pipeline.transform import (
     engineer_financial_metrics,
     filter_reliable_financials,
@@ -28,14 +28,14 @@ from pipeline.transform import (
 @pytest.fixture
 def sample_films():
     """Test Fixture: Loads clean analytical films or returns a synthetic DataFrame."""
-    films_path = PROCESSED_DIR / "films_analytical.csv"
-    if films_path.exists():
-        return pd.read_csv(films_path)
+    for path in (OUTPUT_DIR / "clean_films.csv", PROCESSED_DIR / "clean_films.csv", PROCESSED_DIR / "films_analytical.csv"):
+        if path.exists():
+            return pd.read_csv(path)
     return pd.DataFrame([
-        {"movie_id": 1, "title": "Film A", "is_franchise": True, "budget": 100, "revenue": 500, "release_year": 2005, "era": "2000-Onward"},
-        {"movie_id": 2, "title": "Film B", "is_franchise": True, "budget": 150, "revenue": 600, "release_year": 2008, "era": "2000-Onward"},
-        {"movie_id": 3, "title": "Film C", "is_franchise": False, "budget": 50, "revenue": 200, "release_year": 1995, "era": "Pre-2000"},
-        {"movie_id": 4, "title": "Film D", "is_franchise": False, "budget": 80, "revenue": 160, "release_year": 2012, "era": "2000-Onward"},
+        {"movie_id": 1, "title": "Film A", "is_franchise": True, "budget": 100, "revenue": 500, "release_year": 2005, "era": "2000-Onward", "vote_average": 8.1},
+        {"movie_id": 2, "title": "Film B", "is_franchise": True, "budget": 150, "revenue": 600, "release_year": 2008, "era": "2000-Onward", "vote_average": 7.9},
+        {"movie_id": 3, "title": "Film C", "is_franchise": False, "budget": 50, "revenue": 200, "release_year": 1995, "era": "Pre-2000", "vote_average": 8.4},
+        {"movie_id": 4, "title": "Film D", "is_franchise": False, "budget": 80, "revenue": 160, "release_year": 2012, "era": "2000-Onward", "vote_average": 7.2},
     ])
 
 

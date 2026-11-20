@@ -2,8 +2,8 @@
 StreamVault Master Test and Execution Runner.
 Single-command orchestration of all 8 phases of the StreamVault platform:
 1. Environment & Dependency Pre-Flight Check
-2. Automated Test Suite (pytest tests/ -v)
-3. Master ETL Pipeline Execution (run_pipeline.py)
+2. Master ETL Pipeline Execution (run_pipeline.py)
+3. Automated Test Suite (pytest tests/ -v)
 4. Data Diagnosis & Candidate Reconciliation Audit (diagnosis/diagnose.py)
 5. Vectorization & Scalability Benchmark (evaluate_scale.py)
 6. Executive Strategy Scenario CLI (streamvault_tool.py)
@@ -197,21 +197,21 @@ def main():
     if not p1_pass:
         sys.exit(1)
 
-    # Phase 2: Pytest Suite (tests/)
+    # Phase 2: Master ETL Pipeline (run_pipeline.py)
     p2_pass, p2_time, _ = run_phase(
-        2, "Automated Test Suite (pytest tests/)",
-        [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"]
+        2, "Master ETL Pipeline Execution (run_pipeline.py)",
+        [sys.executable, "run_pipeline.py"]
     )
-    results.append(("2. Pytest Automated Test Suite", p2_pass, p2_time))
+    results.append(("2. Master ETL Pipeline Run", p2_pass, p2_time))
     if not p2_pass:
         sys.exit(1)
 
-    # Phase 3: Master ETL Pipeline (run_pipeline.py)
+    # Phase 3: Pytest Suite (tests/)
     p3_pass, p3_time, _ = run_phase(
-        3, "Master ETL Pipeline Execution (run_pipeline.py)",
-        [sys.executable, "run_pipeline.py"]
+        3, "Automated Test Suite (pytest tests/)",
+        [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"]
     )
-    results.append(("3. Master ETL Pipeline Run", p3_pass, p3_time))
+    results.append(("3. Pytest Automated Test Suite", p3_pass, p3_time))
     if not p3_pass:
         sys.exit(1)
 

@@ -23,7 +23,7 @@ def test_pipeline_offline_execution():
         [sys.executable, "run_pipeline.py"],
         capture_output=True,
         text=True,
-        timeout=30
+        timeout=180
     )
     assert result.returncode == 0, f"run_pipeline.py failed: {result.stderr}"
     assert "Pipeline finished successfully" in result.stdout

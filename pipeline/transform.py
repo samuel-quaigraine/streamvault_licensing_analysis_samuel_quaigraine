@@ -253,7 +253,7 @@ def score_licensing_options(
             "median_roi": float(valid_roi["return_on_cost"].median()) if len(valid_roi) > 0 else 0.0,
             "failure_rate": float(len(flops) / len(valid_roi)) if len(valid_roi) > 0 else 0.0,
             "hit_rate": float(len(hits) / len(valid_roi)) if len(valid_roi) > 0 else 0.0,
-            "mean_vote_average": float(group["vote_average"].mean()) if len(group) > 0 else 0.0,
+            "mean_vote_average": float(group["vote_average"].mean()) if "vote_average" in group.columns and len(group) > 0 else 0.0,
         }
 
     return scores

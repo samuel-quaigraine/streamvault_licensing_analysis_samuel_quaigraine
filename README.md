@@ -75,7 +75,7 @@ Open `.env` and add your free TMDb API key or Read Access Token.
 
 ### One-Command Master Execution (8-Phase Test & Pipeline Battery)
 
-Run the entire platform end-to-end (pre-flight checks, 26 unit tests, ETL pipeline, data diagnosis, scalability benchmark, strategy CLI, chart generation, and repository hygiene audit):
+Run the entire platform end-to-end (pre-flight checks, master ETL pipeline, 26 unit tests, data diagnosis, scalability benchmark, strategy CLI, chart generation, and repository hygiene audit):
 
 ```bash
 # Cross-Platform Python runner:
