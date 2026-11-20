@@ -15,7 +15,7 @@ erDiagram
     FILM ||--|{ FILM_GENRE : "categorized by"
     FILM ||--|{ FILM_CAST : "features (1-to-many)"
     FILM ||--|{ FILM_CREW : "directed/written by (1-to-many)"
-    
+
     CANDIDATE_LIST {
         int line_number "1 to 127 (line 69 is empty)"
         string raw_id "Value as provided in CSV"
@@ -147,6 +147,7 @@ flowchart TD
 ## 3. Data Dictionary: Processed Analytical Tables
 
 ### Table 1: `clean_films.csv` (`# grain: one row per film`)
+
 - **`movie_id`** (Integer, Primary Key): Unique TMDb movie identifier.
 - **`title`** (String): Official English release title.
 - **`original_title`** (String): Original language title.
@@ -173,6 +174,7 @@ flowchart TD
 - **`genre_names`** (String): Comma-delimited list of genre labels.
 
 ### Table 2: `clean_cast.csv` (`# grain: one row per film per cast member`)
+
 - **`movie_id`** (Integer, Foreign Key): References `clean_films.csv`.
 - **`cast_id`** (Integer, Primary Key): TMDb actor credit identifier.
 - **`actor_name`** (String): Billed name of the performer.
@@ -180,6 +182,7 @@ flowchart TD
 - **`cast_order`** (Integer): Order in the credits billing (0 = Top-billed Lead Actor).
 
 ### Table 3: `clean_crew.csv` (`# grain: one row per film per crew member`)
+
 - **`movie_id`** (Integer, Foreign Key): References `clean_films.csv`.
 - **`crew_id`** (Integer, Primary Key): TMDb crew credit identifier.
 - **`crew_name`** (String): Name of the crew member.
@@ -209,6 +212,7 @@ flowchart LR
 ```
 
 ### Architectural Principles:
+
 1. **Phase 1 (External Market Demand Baseline)**:
    - Evaluates historical market demand, capital efficiency (`Revenue / Budget`), and creative talent consistency from public records.
    - Operates 100% offline from verified JSON disk cache.
