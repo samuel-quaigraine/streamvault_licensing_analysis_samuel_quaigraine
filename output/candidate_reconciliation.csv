@@ -1,7 +1,0 @@
-Stage,Rows,Delta,Reason
-1. Raw Candidate CSV Input,127,0,"Initial candidate list from tracker, spreadsheet, and studio desk"
-2. Ingestion Format Validation,124,-3,"Removed empty line 69, negative ID -1, and literal 'N/A' string"
-3. External Identifier Harmonization,123,-1,IMDb ID tt0468569 resolves to TMDb 155 (already present in candidate list)
-4. Exact ID Deduplication,117,-6,"Deduplicated repeated IDs (155, 278, 550, 603, 680, 1891)"
-5. Live API Resolution (404s),112,-5,"TMDb API returned 404 Not Found for 5 invalid/deprecated IDs: [7733901, 8471293, 8471294, 9412887, 9412888]"
-6. Final Analytical Grain (# 1 row / film),112,0,Cleaned analytical film dataset prepared for KPI evaluation

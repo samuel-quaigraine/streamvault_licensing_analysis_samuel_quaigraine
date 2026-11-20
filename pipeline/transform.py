@@ -1,118 +1,140 @@
 """
-Data transformation, feature engineering, and KPI computation module.
-Enforces strict table grains with explicit comments.
-Parameterizes cleaning choices so KPIs can be computed across multiple assumptions.
+Stations 2, 3, 4, and 5: Relational Flattening, Labeling, Financial Filtering, Scoring, and Talent Scouting.
+
+Factory Line Functions (from h3lp/mathematical_formulation_of_the_streamvault_pipeline.md):
+- Station 2: The Labeler (`classify_movie`)
+  Unpacks nested JSON into 3 distinct grains (films, cast, crew) and tags Franchise vs Standalone.
+- Station 3: The Quality Filter (`is_reliable`)
+  Discards $0 unpopulated money placeholders and slices into Window A (All Years) vs Window B (2000+).
+- Station 4: The Scorekeeper (`score_options`)
+  Calculates Return Multiple (Rev/Budget), Medians vs Means, Bundle Totals, Top 3 Franchises & Top 5 Standalones.
+- Station 5: The Talent Scout (`rate_talent`)
+  Ranks Directors & Lead Actors with the Fairness Rule (minimum appearances >= 2).
+
+Course Lessons Applied from @materials-learning:
+- "Learning Path: Parsing and flattening nested JSON"
+- "Learning Path: When json_normalize is not enough"
+- "Learning Path: Missing data"
+- "Learning Path: Judging a cleaning decision by its impact"
+- "Learning Path: Vectorisation versus apply"
+- "Learning Path: GroupBy and aggregation for KPIs"
 """
 
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from pipeline.config import ERA_CUTOFF_YEAR, TOTAL_ACQUISITION_BUDGET
+from pipeline.config import (
+    ERA_CUTOFF_YEAR,
+    COMMERCIAL_HIT_THRESHOLD,
+    COMMERCIAL_MODERATE_THRESHOLD,
+    TOTAL_ACQUISITION_BUDGET,
+    MIN_TALENT_APPEARANCES,
+    LEAD_ACTOR_ORDER_LIMIT,
+)
 
 
-def flatten_movies_data(
+# ==============================================================================
+# STATION 2: THE LABELER (`classify_movie`)
+# Unpacks nested JSON into 3 clean relational grains and labels collection tags.
+# ==============================================================================
+
+def flatten_movie_details_and_credits(
     movies_dict: Dict[int, Dict[str, Any]]
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
-    Flatten nested JSON responses into three tabular structures with distinct grains.
-    
+    STATION 2 (The Labeler): Flatten nested JSON into three clean relational tables.
+
+    Lesson: "Parsing and flattening nested JSON" & "When json_normalize is not enough"
+    Plain English: A film has one box office total, but dozens of actors and crew.
+    If we mashed them all into one flat table, the box office numbers would get repeated
+    for every actor, artificially inflating revenue by 50x!
+    So we create three separate tables with distinct 'grains':
+      1. Films Table  (Grain: 1 row per film)
+      2. Cast Table   (Grain: 1 row per film per cast member)
+      3. Crew Table   (Grain: 1 row per film per crew member)
+
     Returns:
-        films_df: Grain: one row per film
-        cast_df: Grain: one row per film per cast member
-        crew_df: Grain: one row per film per crew member
+        films_df: 1 row per film with metadata, collection labels, and box office.
+        cast_df: 1 row per actor appearance with billing order.
+        crew_df: 1 row per crew member with job title and department.
     """
     film_rows = []
     cast_records = []
     crew_records = []
 
-    # ==========================================================================
-    # BLOCK: Iterate Over Movies & Flatten Nested Attributes
-    # What it does: Extracts movie metadata, collections, genres, release year,
-    # and splits cast credits and crew credits into their own separate lists.
-    # ==========================================================================
     for movie_id, data in movies_dict.items():
         details = data.get("details", {})
         credits_data = data.get("credits", {})
 
-        # Step 1: Extract collection/franchise details (if film is part of a series)
+        # Step A: The Labeler checks belongs_to_collection
+        # If TMDb links it to a series, we capture the collection ID and name
         collection = details.get("belongs_to_collection")
         coll_id = collection.get("id") if collection else None
         coll_name = collection.get("name") if collection else None
+        is_franchise = coll_id is not None
 
-        # Step 2: Extract genres and create a simple comma-separated string
+        # Step B: Extract Genres as comma-separated string
         genres_list = details.get("genres", [])
         genre_names = ", ".join([g.get("name", "") for g in genres_list if g.get("name")])
 
-        # Step 3: Extract release year and assign era (Pre-2000 vs 2000-Onward)
+        # Step C: Extract Release Year and Era Window
         release_date = details.get("release_date")
         release_year = None
-        if release_date and len(release_date) >= 4:
+        if release_date and len(str(release_date)) >= 4:
             try:
-                release_year = int(release_date[:4])
+                release_year = int(str(release_date)[:4])
             except ValueError:
                 release_year = None
 
-        era = "2000-Onward" if release_year and release_year >= ERA_CUTOFF_YEAR else "Pre-2000"
+        era_window = "2000-Onward" if release_year and release_year >= ERA_CUTOFF_YEAR else "Pre-2000"
 
-        # Step 4: Build Film record (# grain: one row per film)
+        # Step D: Build Film Record (Grain: exactly 1 row per film)
         film_rows.append({
             "movie_id": movie_id,
-            "title": details.get("title", ""),
-            "original_title": details.get("original_title", ""),
+            "title": details.get("title", f"Movie_{movie_id}"),
             "release_date": release_date,
             "release_year": release_year,
-            "era": era,
+            "era": era_window,
             "budget": float(details.get("budget", 0) or 0),
             "revenue": float(details.get("revenue", 0) or 0),
-            "runtime": float(details.get("runtime", 0) or 0),
             "vote_average": float(details.get("vote_average", 0.0) or 0.0),
             "vote_count": int(details.get("vote_count", 0) or 0),
             "popularity": float(details.get("popularity", 0.0) or 0.0),
-            "status": details.get("status", ""),
+            "runtime": details.get("runtime"),
+            "status": details.get("status"),
+            "is_franchise": is_franchise,
             "collection_id": coll_id,
             "collection_name": coll_name,
-            "is_franchise": bool(coll_id is not None),
-            "genres_count": len(genres_list),
-            "genre_names": genre_names,
+            "genres": genre_names,
+            "original_language": details.get("original_language"),
         })
 
-        # Step 5: Extract individual cast members (# grain: one row per film per cast member)
-        cast_list = credits_data.get("cast", [])
-        for c in cast_list:
+        # Step E: Build Cast Records (Grain: 1 row per film per actor)
+        for actor in credits_data.get("cast", []):
             cast_records.append({
                 "movie_id": movie_id,
-                "cast_id": c.get("id"),
-                "actor_name": c.get("name"),
-                "character_name": c.get("character"),
-                "cast_order": c.get("order"),
+                "cast_id": actor.get("id"),
+                "actor_name": actor.get("name"),
+                "character_name": actor.get("character"),
+                "cast_order": actor.get("order", 999),
             })
 
-        # Step 6: Extract individual crew members (# grain: one row per film per crew member)
-        crew_list = credits_data.get("crew", [])
-        for cr in crew_list:
+        # Step F: Build Crew Records (Grain: 1 row per film per crew member)
+        for member in credits_data.get("crew", []):
             crew_records.append({
                 "movie_id": movie_id,
-                "crew_id": cr.get("id"),
-                "crew_name": cr.get("name"),
-                "job": cr.get("job"),
-                "department": cr.get("department"),
+                "crew_id": member.get("id"),
+                "crew_name": member.get("name"),
+                "job": member.get("job"),
+                "department": member.get("department"),
             })
 
-    # ==========================================================================
-    # BLOCK: Convert Records into Clean Relational DataFrames
-    # What it does: Creates three distinct DataFrames, keeping each table at its
-    # natural grain to prevent any duplicate financial counting.
-    # ==========================================================================
-    # 1. Films Table (# grain: one row per film)
+    # Assemble into DataFrames
     films_df = pd.DataFrame(film_rows)
-
-    # 2. Cast Table (# grain: one row per film per cast member)
     cast_df = pd.DataFrame(cast_records) if cast_records else pd.DataFrame(
         columns=["movie_id", "cast_id", "actor_name", "character_name", "cast_order"]
     )
-
-    # 3. Crew Table (# grain: one row per film per crew member)
     crew_df = pd.DataFrame(crew_records) if crew_records else pd.DataFrame(
         columns=["movie_id", "crew_id", "crew_name", "job", "department"]
     )
@@ -120,32 +142,41 @@ def flatten_movies_data(
     return films_df, cast_df, crew_df
 
 
-def engineer_financial_metrics(
+# Backward-compatible alias
+flatten_movies_data = flatten_movie_details_and_credits
+
+
+# ==============================================================================
+# STATION 3: THE QUALITY FILTER (`is_reliable`)
+# Parameterized zero-revenue handling and era window segmentation.
+# ==============================================================================
+
+def filter_reliable_financials(
     films_df: pd.DataFrame,
     treat_zero_revenue_as_missing: bool = True
 ) -> pd.DataFrame:
     """
-    Compute derived financial metrics with parameterized handling of zero revenue.
-    Vectorized computation without row loops.
+    STATION 3 (The Quality Filter): Filter out disguised nulls and compute ROI.
+
+    Lesson: "Missing data", "Judging a cleaning decision", & "Vectorisation versus apply"
+    Plain English: In TMDb, a $0 budget or $0 revenue means 'nobody typed it in',
+    not that the film cost $0 to produce!
+    If we compute $0 / $10M = 0x, we falsely punish the movie as a catastrophic commercial failure.
+    - If treat_zero_revenue_as_missing is True (Baseline):
+      We treat $0 revenue as missing data (NaN), so it is excluded from profit/ROI averages.
+    - If treat_zero_revenue_as_missing is False (Sensitivity check):
+      We treat $0 as a flop (0x return) to test if Kwame's decision holds under harsh assumptions.
     """
     df = films_df.copy()
 
-    # ==========================================================================
-    # BLOCK: Dollar Profit Calculation
-    # What it does: Calculates gross theatrical profit (Revenue minus Budget).
-    # ==========================================================================
+    # Vectorized profit: Revenue - Budget (dollars)
     df["profit"] = df["revenue"] - df["budget"]
 
-    # ==========================================================================
-    # BLOCK: Return on Cost (ROI Multiple)
-    # What it does: Computes Revenue / Budget multiple safely using vectorization.
-    # If treat_zero_revenue_as_missing is True, $0 revenue is treated as missing (NaN)
-    # rather than an artificial 0x return.
-    # ==========================================================================
+    # Lesson: "Vectorisation versus apply"
+    # Using np.where instead of slow row-by-row lambda/apply
     valid_budget = df["budget"] > 0
 
     if treat_zero_revenue_as_missing:
-        # Treat $0 revenue as missing data (unknown theatrical gross)
         valid_return = valid_budget & (df["revenue"] > 0)
         df["return_on_cost"] = np.where(
             valid_return,
@@ -153,65 +184,63 @@ def engineer_financial_metrics(
             np.nan
         )
     else:
-        # Treat $0 revenue as genuine commercial flop ($0 return)
         df["return_on_cost"] = np.where(
             valid_budget,
             df["revenue"] / df["budget"],
             np.nan
         )
 
-    # ==========================================================================
-    # BLOCK: Commercial Tier Classification
-    # What it does: Groups films into business categories:
-    # - Blockbuster Hit: Return >= 2.5x (the traditional commercial breakeven rule)
-    # - Moderate Return: Return between 1.0x and 2.5x
-    # - Flop / Loss: Return < 1.0x
-    # - Unknown: Missing budget or missing revenue data
-    # ==========================================================================
-    conditions = [
+    # Commercial Tier Classification:
+    # - Blockbuster Hit: Return >= 2.5x (covers production + marketing + theater cuts)
+    # - Moderate Return: 1.0x to 2.5x (broke even or modest profit)
+    # - Flop / Loss: < 1.0x (lost money)
+    # - Unknown: Missing budget or missing revenue
+    tier_conditions = [
         df["return_on_cost"].isna(),
-        df["return_on_cost"] < 1.0,
-        (df["return_on_cost"] >= 1.0) & (df["return_on_cost"] < 2.5),
-        df["return_on_cost"] >= 2.5
+        df["return_on_cost"] < COMMERCIAL_MODERATE_THRESHOLD,
+        (df["return_on_cost"] >= COMMERCIAL_MODERATE_THRESHOLD) & (df["return_on_cost"] < COMMERCIAL_HIT_THRESHOLD),
+        df["return_on_cost"] >= COMMERCIAL_HIT_THRESHOLD,
     ]
-    choices = ["Unknown", "Flop / Loss", "Moderate Return", "Blockbuster Hit"]
-    df["commercial_tier"] = np.select(conditions, choices, default="Unknown")
+    tier_labels = ["Unknown", "Flop / Loss", "Moderate Return", "Blockbuster Hit"]
+    df["commercial_tier"] = np.select(tier_conditions, tier_labels, default="Unknown")
 
     return df
 
 
-def compute_kpis(
-    df: pd.DataFrame,
+# Backward-compatible alias
+engineer_financial_metrics = filter_reliable_financials
+
+
+# ==============================================================================
+# STATION 4: THE SCOREKEEPER (`score_options`)
+# Computes dual-window KPIs, medians vs means, bundle economics, and top shortlists.
+# ==============================================================================
+
+def score_licensing_options(
+    films_df: pd.DataFrame,
     era_filter: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Compute executive KPIs comparing Franchise Bundles vs. Standalone Titles.
-    Vectorized aggregation using pandas groupby.
-    """
-    # ==========================================================================
-    # BLOCK: Apply Era Filter
-    # What it does: Slices dataset by era (e.g. '2000-Onward') or computes across all years.
-    # ==========================================================================
-    data = df if era_filter is None else df[df["era"] == era_filter].copy()
+    STATION 4 (The Scorekeeper): Compute side-by-side KPIs for Franchises vs Standalones.
 
-    kpis = {}
-    
-    # ==========================================================================
-    # BLOCK: Group by Franchise vs. Standalone
-    # What it does: Computes median ROI, mean revenue, hit rates, and failure rates
-    # for franchises versus individual films.
-    # ==========================================================================
+    Lesson: "GroupBy and aggregation for KPIs" & "Broadcasting — NumPy"
+    Plain English: Calculates how well each licensing option performs.
+    Crucial Rule: We report the MEDIAN return alongside the mean.
+    A single $1B movie (like The Dark Knight) can drag an average skyward, making a group
+    look safe when most films were mediocre. The median shows what a *typical* title achieves.
+    """
+    data = films_df if era_filter is None else films_df[films_df["era"] == era_filter].copy()
+    scores = {}
+
     for is_franchise, group in data.groupby("is_franchise"):
         label = "Franchise" if is_franchise else "Standalone"
-        
-        # Identify rows with valid non-zero financials
+
         valid_rev = group[group["revenue"] > 0]
         valid_roi = group[group["return_on_cost"].notna()]
-        flops = group[group["return_on_cost"] < 1.0]
-        hits = group[group["return_on_cost"] >= 2.5]
+        flops = group[group["return_on_cost"] < COMMERCIAL_MODERATE_THRESHOLD]
+        hits = group[group["return_on_cost"] >= COMMERCIAL_HIT_THRESHOLD]
 
-        # Compute summary metrics
-        kpis[label] = {
+        scores[label] = {
             "total_titles": len(group),
             "titles_with_revenue": len(valid_rev),
             "titles_with_roi": len(valid_roi),
@@ -227,22 +256,30 @@ def compute_kpis(
             "mean_vote_average": float(group["vote_average"].mean()) if len(group) > 0 else 0.0,
         }
 
-    return kpis
+    return scores
 
 
-def get_franchise_rankings(df: pd.DataFrame) -> pd.DataFrame:
+# Backward-compatible alias
+compute_kpis = score_licensing_options
+
+
+def rank_franchise_bundles(films_df: pd.DataFrame) -> pd.DataFrame:
     """
-    BLOCK: Rank Franchise Collections
-    What it does: Groups franchise films by collection name and aggregates total
-    box office revenue, film count, median ROI multiple, and average rating.
+    STATION 4 (Scorekeeper): Rank Franchise Bundles with whole-bundle and weakest-film checks.
+
+    Plain English: Since studios force StreamVault to buy the whole franchise together,
+    we sum total revenue vs total budget across the entire collection and check the weakest film.
+    One great opening film must not hide three money-losing sequels!
     """
-    franchises = df[df["is_franchise"] & df["collection_name"].notna()].copy()
-    
-    ranked = franchises.groupby("collection_name").agg(
+    franchises = films_df[films_df["is_franchise"] & films_df["collection_name"].notna()].copy()
+
+    bundle_ranks = franchises.groupby("collection_name").agg(
         film_count=("movie_id", "count"),
         total_revenue=("revenue", "sum"),
+        total_budget=("budget", "sum"),
         mean_revenue=("revenue", "mean"),
         median_roi=("return_on_cost", "median"),
+        min_roi=("return_on_cost", "min"),  # Weakest film in the bundle
         mean_vote=("vote_average", "mean"),
         earliest_release=("release_year", "min"),
         latest_release=("release_year", "max"),
@@ -250,53 +287,95 @@ def get_franchise_rankings(df: pd.DataFrame) -> pd.DataFrame:
         titles=("title", list)
     ).reset_index()
 
-    return ranked.sort_values(by=["total_revenue", "median_roi"], ascending=False)
+    # Bundle-level ROI: Total Revenue / Total Budget across the bundle
+    valid_bundle_budget = bundle_ranks["total_budget"] > 0
+    bundle_ranks["bundle_roi"] = np.where(
+        valid_bundle_budget,
+        bundle_ranks["total_revenue"] / bundle_ranks["total_budget"],
+        np.nan
+    )
+
+    return bundle_ranks.sort_values(by=["total_revenue", "median_roi"], ascending=False)
 
 
-def get_standalone_rankings(df: pd.DataFrame) -> pd.DataFrame:
+# Backward-compatible alias
+get_franchise_rankings = rank_franchise_bundles
+
+
+def rank_standalone_hits(films_df: pd.DataFrame) -> pd.DataFrame:
     """
-    BLOCK: Rank Standalone Titles
-    What it does: Filters for standalone movies (not in collections) and ranks them
-    by return multiple and revenue to identify the best standalone targets.
+    STATION 4 (Scorekeeper): Rank Standalone Titles to find the top individual acquisitions.
     """
-    standalones = df[~df["is_franchise"]].copy()
-    valid = standalones[standalones["return_on_cost"].notna()].copy()
-    
-    return valid.sort_values(by=["return_on_cost", "revenue"], ascending=False)
+    standalones = films_df[~films_df["is_franchise"]].copy()
+    valid_standalones = standalones[standalones["return_on_cost"].notna()].copy()
+
+    return valid_standalones.sort_values(by=["return_on_cost", "revenue"], ascending=False)
 
 
-def rank_talent(
+# Backward-compatible alias
+get_standalone_rankings = rank_standalone_hits
+
+
+# ==============================================================================
+# STATION 5: THE TALENT SCOUT (`rate_talent`)
+# Identifies reliable directors and lead actors using the Fairness Rule.
+# ==============================================================================
+
+def scout_directors_and_lead_actors(
     films_df: pd.DataFrame,
     cast_df: pd.DataFrame,
-    crew_df: pd.DataFrame
+    crew_df: pd.DataFrame,
+    min_appearances: int = MIN_TALENT_APPEARANCES,
+    lead_actor_cutoff: int = LEAD_ACTOR_ORDER_LIMIT
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
-    BLOCK: Rank Top Directors & Lead Actors
-    What it does: Evaluates director and lead actor commercial track records
-    by joining talent to film metrics without distorting the underlying film grain.
+    STATION 5 (The Talent Scout): Rank Directors and Lead Actors for Kwame's negotiators.
+
+    Lesson: "Merging, and proving the join" & "GroupBy and aggregation for KPIs"
+    Plain English: Evaluates who consistently delivers high returns and ratings.
+    Fairness Rule: Only rank directors and actors who appear in at least 2 or 3 films
+    on our list. A director who made 1 lucky hit shouldn't be crowned a proven guarantee!
     """
-    # Step 1: Directors (from crew table where job == 'Director')
+    film_metrics = films_df[["movie_id", "title", "revenue", "budget", "return_on_cost", "vote_average", "era"]]
+
+    # Step 1: Scout Directors (crew member where job == 'Director')
     directors = crew_df[crew_df["job"] == "Director"].copy()
-    m_dir = directors.merge(films_df[["movie_id", "title", "revenue", "return_on_cost", "era"]], on="movie_id", how="inner")
-    
-    dir_summary = m_dir.groupby("crew_name").agg(
+    director_merged = directors.merge(film_metrics, on="movie_id", how="inner")
+
+    director_summary = director_merged.groupby("crew_name").agg(
         film_count=("movie_id", "nunique"),
         total_revenue=("revenue", "sum"),
         mean_revenue=("revenue", "mean"),
         median_roi=("return_on_cost", "median"),
+        mean_vote=("vote_average", "mean"),
         films=("title", list)
-    ).reset_index().sort_values(by=["median_roi", "total_revenue"], ascending=False)
+    ).reset_index()
 
-    # Step 2: Lead Actors (from cast table where cast_order == 0)
-    lead_actors = cast_df[cast_df["cast_order"] == 0].copy()
-    m_act = lead_actors.merge(films_df[["movie_id", "title", "revenue", "return_on_cost", "era"]], on="movie_id", how="inner")
+    # Apply fairness filter
+    director_shortlist = director_summary[
+        director_summary["film_count"] >= min_appearances
+    ].sort_values(by=["median_roi", "total_revenue"], ascending=False)
 
-    act_summary = m_act.groupby("actor_name").agg(
+    # Step 2: Scout Lead Actors (top billed cast members, cast_order <= cutoff)
+    lead_actors = cast_df[cast_df["cast_order"] <= lead_actor_cutoff].copy()
+    actor_merged = lead_actors.merge(film_metrics, on="movie_id", how="inner")
+
+    actor_summary = actor_merged.groupby("actor_name").agg(
         film_count=("movie_id", "nunique"),
         total_revenue=("revenue", "sum"),
         mean_revenue=("revenue", "mean"),
         median_roi=("return_on_cost", "median"),
+        mean_vote=("vote_average", "mean"),
         films=("title", list)
-    ).reset_index().sort_values(by=["median_roi", "total_revenue"], ascending=False)
+    ).reset_index()
 
-    return dir_summary, act_summary
+    # Apply fairness filter
+    actor_shortlist = actor_summary[
+        actor_summary["film_count"] >= min_appearances
+    ].sort_values(by=["median_roi", "total_revenue"], ascending=False)
+
+    return director_shortlist, actor_shortlist
+
+
+# Backward-compatible alias
+rank_talent = scout_directors_and_lead_actors

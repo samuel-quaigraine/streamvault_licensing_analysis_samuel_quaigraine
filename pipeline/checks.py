@@ -1,6 +1,22 @@
 """
-Data profiling, quality assertions, reconciliation, and live API spot-check module.
-Implements the 4-slice deliberate spot-check and structured data diagnosis.
+Data Profiling, Quality Gates, Reconciliation, and Deliberate 4-Slice Spot-Check.
+
+Analogies & Concept:
+Like the factory quality control inspectors stationed at the end of the line:
+1. Profiles the dataset for disguised nulls ($0 revenues) and extreme box office outliers.
+2. Audits the full candidate reconciliation ledger: proves where every single one of the 127 IDs went.
+3. Performs a deliberate 4-slice live API spot-check against upstream studio records:
+   - Random Slice: 3 titles drawn with fixed seed
+   - Extremes: Top revenue title and lowest positive budget title
+   - Most Transformed: Franchise title with nested collections and deep credits
+   - Boundary Cases: Millennium era cutoff (1999/2000) and $0 revenue titles
+4. Runs the pre-load QA gate: verifies row conservation and foreign key integrity.
+
+Course Lessons Applied from @materials-learning:
+- "Learning Path: Spot-checking your output against the API"
+- "Learning Path: Exploratory profiling"
+- "Learning Path: Outliers"
+- "How to Remove Outliers for Machine Learning"
 """
 
 from datetime import datetime, timezone
@@ -8,39 +24,37 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from pipeline.config import ERA_CUTOFF_YEAR
+from pipeline.config import ERA_CUTOFF_YEAR, MAX_ACCEPTABLE_QUARANTINE_SHARE
 from pipeline.extract import TMDBExtractor
+
+
+class ReconciliationError(Exception):
+    """Raised when data invariants or row conservation rules fail the QA gate."""
+    pass
 
 
 def profile_dataset(films_df: pd.DataFrame) -> Dict[str, Any]:
     """
     Exhaustive exploratory data profiling of the films dataset.
-    Identifies disguised nulls ($0 revenues/budgets), distributions, and outliers.
+
+    Lesson: 'Exploratory profiling' & 'Outliers'
+    Plain English: Inspects the shape of our data. Identifies disguised nulls
+    ($0 revenue/budget), era breakdowns, and box office outliers (mega-hits)
+    using Tukey's IQR rule.
     """
     total_records = len(films_df)
-    
-    # ==========================================================================
-    # BLOCK: Detect Disguised Nulls ($0 Values)
-    # What it does: Counts rows where revenue or budget is zero. In entertainment data,
-    # studios often record $0 when the actual box office or production budget is unknown.
-    # ==========================================================================
+
+    # Detect Disguised Nulls ($0 Values)
     zero_revenue_count = int((films_df["revenue"] == 0).sum())
     zero_budget_count = int((films_df["budget"] == 0).sum())
     both_zero_count = int(((films_df["revenue"] == 0) & (films_df["budget"] == 0)).sum())
     missing_release_dates = int(films_df["release_date"].isna().sum())
-    
-    # ==========================================================================
-    # BLOCK: Category Breakdown
-    # What it does: Tallies films by era (Pre-2000 vs 2000-Onward) and franchise status.
-    # ==========================================================================
+
+    # Category Breakdown
     era_counts = films_df["era"].value_counts().to_dict()
     franchise_counts = films_df["is_franchise"].value_counts().to_dict()
-    
-    # ==========================================================================
-    # BLOCK: Parametric & Non-Parametric Financial Distributions
-    # What it does: Computes median, mean, standard deviation, and IQR (interquartile range)
-    # on non-zero financial metrics to understand central tendency without skew.
-    # ==========================================================================
+
+    # Parametric & Non-Parametric Financial Distributions
     valid_rev = films_df[films_df["revenue"] > 0]["revenue"]
     valid_bud = films_df[films_df["budget"] > 0]["budget"]
     valid_roi = films_df[films_df["return_on_cost"].notna()]["return_on_cost"] if "return_on_cost" in films_df.columns else pd.Series(dtype=float)
@@ -63,12 +77,8 @@ def profile_dataset(films_df: pd.DataFrame) -> Dict[str, Any]:
 
     rev_stats = stats_summary(valid_rev)
     roi_stats = stats_summary(valid_roi)
-    
-    # ==========================================================================
-    # BLOCK: Box Office Outlier Detection (Tukey's IQR Method)
-    # What it does: Flags films whose box office exceeds Q3 + 1.5 * IQR.
-    # These represent global mega-hits like Avatar or Titanic.
-    # ==========================================================================
+
+    # Outlier Detection via Tukey's IQR Method (Q3 + 1.5 * IQR)
     revenue_outliers = []
     if rev_stats:
         upper_rev_bound = rev_stats["p75"] + 1.5 * rev_stats["iqr"]
@@ -95,30 +105,11 @@ def profile_dataset(films_df: pd.DataFrame) -> Dict[str, Any]:
 
 
 def quality_report(df: pd.DataFrame, stage_name: str) -> Dict[str, Any]:
-    """
-    BLOCK: Data Quality Assertions Report
-    What it does: Verifies key data health rules:
-    - Primary key uniqueness
-    - Zero exact duplicate rows
-    - Zero negative revenues or negative budgets
-    """
+    """Verify primary key uniqueness, zero duplicate rows, and zero negative financials."""
     row_count = len(df)
     id_unique = bool(df["movie_id"].is_unique) if "movie_id" in df.columns else False
-    
-    # Check exact duplicate rows
     exact_duplicates = int(df.duplicated().sum())
 
-    # Check semantic duplicates: normalized title and release year
-    semantic_duplicate_groups = 0
-    if "title" in df.columns and "release_year" in df.columns:
-        norm_key = (
-            df["title"].astype(str).str.strip().str.casefold()
-            + "|"
-            + df["release_year"].fillna(-1).astype(str)
-        )
-        semantic_duplicate_groups = int(norm_key.duplicated(keep=False).sum())
-
-    # Check for negative revenues or budgets
     negative_revenues = int((df["revenue"] < 0).sum()) if "revenue" in df.columns else 0
     negative_budgets = int((df["budget"] < 0).sum()) if "budget" in df.columns else 0
 
@@ -127,7 +118,6 @@ def quality_report(df: pd.DataFrame, stage_name: str) -> Dict[str, Any]:
         "row_count": row_count,
         "id_is_unique": id_unique,
         "exact_duplicates": exact_duplicates,
-        "semantic_duplicate_rows": semantic_duplicate_groups,
         "negative_revenues": negative_revenues,
         "negative_budgets": negative_budgets,
         "all_checks_passed": bool(
@@ -142,30 +132,28 @@ def build_reconciliation_table(
     final_films_df: pd.DataFrame
 ) -> List[Dict[str, Any]]:
     """
-    BLOCK: 6-Stage Candidate Reconciliation Ledger
-    What it does: Explicitly reconciles all 127 raw candidate rows from id_list.csv
-    down to the final 112 verified titles, accounting for format exclusions,
-    IMDb IDs, duplicate IDs, and 404 dead IDs.
+    Explicitly reconcile all 127 raw candidate rows down to 112 final verified titles.
+    Guarantees 100% accountability across all stages.
     """
     reconciliation = []
-
-    # Stage 1: Initial Candidate Input
     total_raw = len(candidate_df)
+
+    # Stage 1: Initial Input
     reconciliation.append({
         "Stage": "1. Raw Candidate CSV Input",
         "Rows": total_raw,
         "Delta": 0,
-        "Reason": "Initial candidate list from tracker, spreadsheet, and studio desk"
+        "Reason": "Initial candidate list from tracker, legacy spreadsheet, and studio desk"
     })
 
-    # Stage 2: Ingestion Format Exclusion (Empty row, -1, N/A)
+    # Stage 2: Format Exclusions (Empty rows, negative numbers, missing markers)
     format_excluded = candidate_df[candidate_df["status"] == "EXCLUDED"]
     n_format_ex = len(format_excluded)
     reconciliation.append({
         "Stage": "2. Ingestion Format Validation",
         "Rows": total_raw - n_format_ex,
         "Delta": -n_format_ex,
-        "Reason": "Removed empty line 69, negative ID -1, and literal 'N/A' string"
+        "Reason": "Dynamically removed blank rows, negative IDs, and literal 'N/A' string"
     })
 
     # Stage 3: External Format Resolution
@@ -188,7 +176,7 @@ def build_reconciliation_table(
         "Reason": "Deduplicated repeated IDs (155, 278, 550, 603, 680, 1891)"
     })
 
-    # Stage 5: API Acquisition & 404 Resolution
+    # Stage 5: Live API Resolution & 404s
     n_dead = len(dead_ids)
     remaining_after_dead = total_raw - n_format_ex - n_ext - n_dup - n_dead
     reconciliation.append({
@@ -198,10 +186,10 @@ def build_reconciliation_table(
         "Reason": f"TMDb API returned 404 Not Found for {n_dead} invalid/deprecated IDs: {dead_ids}"
     })
 
-    # Stage 6: Final Analytical Dataset
+    # Stage 6: Final Analytical Grain
     final_count = len(final_films_df)
     reconciliation.append({
-        "Stage": "6. Final Analytical Grain (# 1 row / film)",
+        "Stage": "6. Final Analytical Grain (1 row / film)",
         "Rows": final_count,
         "Delta": 0,
         "Reason": "Cleaned analytical film dataset prepared for KPI evaluation"
@@ -210,19 +198,78 @@ def build_reconciliation_table(
     return reconciliation
 
 
+def check_before_load(
+    total_raw_count: int,
+    verified_films_count: int,
+    dropped_candidates_count: int,
+    films_df: pd.DataFrame,
+    cast_df: pd.DataFrame,
+    crew_df: pd.DataFrame
+) -> Dict[str, Any]:
+    """
+    PRE-LOAD QA GATE: Enforce mathematical invariants before writing final tables.
+
+    Checks:
+    1. Row conservation: total_raw == verified_films + dropped_candidates
+    2. Quarantine threshold: dropped / total_raw <= MAX_ACCEPTABLE_QUARANTINE_SHARE (15%)
+    3. Referencing integrity: every cast and crew record maps to a verified film ID
+    4. Non-negative revenues and budgets
+    """
+    # 1. Row conservation invariant
+    expected_sum = verified_films_count + dropped_candidates_count
+    if total_raw_count != expected_sum:
+        raise ReconciliationError(
+            f"Row conservation broken! Raw={total_raw_count}, but verified({verified_films_count}) "
+            f"+ dropped({dropped_candidates_count}) = {expected_sum}"
+        )
+
+    # 2. Quarantine share threshold
+    drop_rate = dropped_candidates_count / total_raw_count if total_raw_count > 0 else 0.0
+    if drop_rate > MAX_ACCEPTABLE_QUARANTINE_SHARE:
+        raise ReconciliationError(
+            f"Candidate drop rate {drop_rate:.1%} exceeds maximum threshold {MAX_ACCEPTABLE_QUARANTINE_SHARE:.1%}!"
+        )
+
+    # 3. Foreign key referential integrity
+    film_ids = set(films_df["movie_id"])
+    orphan_cast = set(cast_df["movie_id"]) - film_ids
+    orphan_crew = set(crew_df["movie_id"]) - film_ids
+    if orphan_cast:
+        raise ReconciliationError(f"Found orphaned cast records: {orphan_cast}")
+    if orphan_crew:
+        raise ReconciliationError(f"Found orphaned crew records: {orphan_crew}")
+
+    # 4. Non-negative financials
+    if (films_df["budget"] < 0).any():
+        raise ReconciliationError("Found negative budget values in films dataset!")
+    if (films_df["revenue"] < 0).any():
+        raise ReconciliationError("Found negative revenue values in films dataset!")
+
+    return {
+        "status": "PASSED",
+        "total_raw": total_raw_count,
+        "verified_films": verified_films_count,
+        "dropped_candidates": dropped_candidates_count,
+        "drop_rate": drop_rate,
+        "total_revenue_usd": float(films_df["revenue"].sum()),
+    }
+
+
 def perform_deliberate_spot_check(
     films_df: pd.DataFrame,
     extractor: TMDBExtractor,
     seed: int = 42
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """
-    BLOCK: Deliberate 4-Slice Live API Spot-Check
-    What it does: Selects key titles across 4 deliberate slices and queries the live TMDb API:
-    1. Random slice: 3 titles drawn with fixed seed
-    2. Extremes: Top revenue title and lowest positive budget title
-    3. Most Transformed: Film with nested collection and deep cast
-    4. Boundary Cases: Film on the 2000 era boundary, $0 revenue film
-    Verifies that pipeline data exactly mirrors upstream studio records.
+    Deliberate 4-Slice Live API Spot-Check.
+
+    Lesson: 'Spot-checking your output against the API'
+    Plain English: We don't just hope the pipeline ran right—we deliberately sample
+    titles across 4 strategic slices and compare them field-by-field against live TMDb:
+      Slice 1: Random (3 titles)
+      Slice 2: Extremes (highest box office and lowest positive budget)
+      Slice 3: Most Transformed (franchise title with deep nested credits)
+      Slice 4: Boundary Cases (millennium era threshold 1999/2000 and $0 revenue)
     """
     np.random.seed(seed)
     sample_ids: List[Tuple[int, str]] = []
@@ -236,19 +283,19 @@ def perform_deliberate_spot_check(
     # Slice 2: Extremes (highest box office and lowest positive budget)
     top_rev_id = int(films_df.sort_values(by="revenue", ascending=False).iloc[0]["movie_id"])
     sample_ids.append((top_rev_id, "Extremes (Top Revenue)"))
-    
+
     pos_budget = films_df[films_df["budget"] > 0].sort_values(by="budget", ascending=True)
     if not pos_budget.empty:
         low_bud_id = int(pos_budget.iloc[0]["movie_id"])
         sample_ids.append((low_bud_id, "Extremes (Lowest Positive Budget)"))
 
-    # Slice 3: Most transformed (franchise title with complex collection structure)
+    # Slice 3: Most Transformed (franchise title)
     franchises = films_df[films_df["is_franchise"]]
     if not franchises.empty:
         most_trans_id = int(franchises.iloc[0]["movie_id"])
         sample_ids.append((most_trans_id, "Most Transformed (Franchise Flattening)"))
 
-    # Slice 4: Boundary cases (millennium threshold 1999/2000 and $0 revenue)
+    # Slice 4: Boundary Cases (1999/2000 era boundary and $0 revenue)
     boundary_era = films_df[films_df["release_year"].isin([1999, 2000])]
     if not boundary_era.empty:
         sample_ids.append((int(boundary_era.iloc[0]["movie_id"]), "Boundary Case (Era Cutoff 1999/2000)"))
@@ -257,7 +304,7 @@ def perform_deliberate_spot_check(
     if not zero_rev.empty:
         sample_ids.append((int(zero_rev.iloc[0]["movie_id"]), "Boundary Case ($0 Revenue)"))
 
-    # Deduplicate sample while preserving descriptive slice labels
+    # Deduplicate sample while preserving descriptive labels
     seen = set()
     deliberate_sample = []
     for mid, slice_name in sample_ids:
@@ -265,19 +312,13 @@ def perform_deliberate_spot_check(
             seen.add(mid)
             deliberate_sample.append((mid, slice_name))
 
-    # ==========================================================================
-    # BLOCK: Live Query & Field-by-Field Comparison
-    # What it does: Re-queries live TMDb endpoints and verifies title, release date,
-    # budget, and revenue against our analytical table snapshot.
-    # ==========================================================================
     results = []
     matches = 0
     discrepancies = 0
 
     for movie_id, slice_label in deliberate_sample:
         row = films_df[films_df["movie_id"] == movie_id].iloc[0]
-        
-        # Live fetch bypassing local cache
+
         url = f"https://api.themoviedb.org/3/movie/{movie_id}"
         resp = extractor._fetch_with_backoff(url)
         if resp.status_code != 200:
@@ -296,7 +337,6 @@ def perform_deliberate_spot_check(
 
         live_data = resp.json()
 
-        # Compare essential fields
         checks = [
             ("title", row["title"], live_data.get("title", ""), "exact"),
             ("release_date", str(row["release_date"]), str(live_data.get("release_date", "")), "exact"),
@@ -323,7 +363,7 @@ def perform_deliberate_spot_check(
                     "pipeline_val": pipe_val,
                     "api_val": api_val,
                     "diff": diff_val,
-                    "classification": "Source changed" if is_match is False else "None",
+                    "classification": "Source changed" if not is_match else "None",
                     "action": "Verified live API against cached snapshot"
                 })
 

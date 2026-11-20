@@ -1,9 +1,19 @@
 """
-Merge validation and grain integrity enforcement module.
-Uses pandas validate= and indicator=True to convert silent fan-outs into immediate errors.
+Merge Validation & Relational Grain Integrity Module.
+
+Analogies & Concept:
+Like a precision gatekeeper that monitors joins:
+1. Prevents silent row fan-out when merging tables using validate='one_to_one'.
+2. Uses indicator=True to record merge audit statistics.
+3. Asserts referential integrity between child tables (cast/crew) and the parent table (films).
+
+Course Lessons Applied from @materials-learning:
+- "Learning Path: Merging, and proving the join"
+- "Combining Data in pandas With merge(), .join(), and concat()"
+- "Merge, join, concatenate and compare — pandas documentation"
 """
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Tuple
 import pandas as pd
 
 
@@ -17,16 +27,15 @@ def safe_merge_one_to_one(
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     """
     Merge two DataFrames asserting a strict 1-to-1 relationship.
-    Prevents silent row fan-out and records merge indicator statistics.
+
+    Lesson: "Merging, and proving the join"
+    Plain English: In relational data, joining two tables on an identifier must never
+    silently multiply rows. If a key appears multiple times in the right table,
+    pandas throws an immediate exception rather than producing phantom rows!
     """
     before_len = len(left_df)
-    
-    # ==========================================================================
-    # BLOCK: Execute Guarded 1-to-1 Merge
-    # What it does: Merges two tables using pandas validate='one_to_one' and
-    # indicator=True. If a key appears multiple times, pandas immediately throws
-    # an exception rather than silently multiplying rows.
-    # ==========================================================================
+
+    # Execute Guarded 1-to-1 Merge
     merged = left_df.merge(
         right_df,
         on=on,
@@ -34,22 +43,15 @@ def safe_merge_one_to_one(
         validate="one_to_one",
         indicator=True
     )
-    
-    # ==========================================================================
-    # BLOCK: Fan-out Row Count Assertion
-    # What it does: Confirms that the output row count exactly matches the left table.
-    # This mathematically guarantees zero fan-out or duplicate row multiplication.
-    # ==========================================================================
+
+    # Mathematically assert zero fan-out
     after_len = len(merged)
     assert after_len == before_len, (
         f"Fan-out detected in merge between {left_name} and {right_name}! "
         f"Expected {before_len} rows, got {after_len} rows."
     )
 
-    # ==========================================================================
-    # BLOCK: Build Merge Audit Summary
-    # What it does: Summarizes how many records matched both tables versus left only.
-    # ==========================================================================
+    # Build merge audit indicator report
     indicator_counts = merged["_merge"].value_counts().to_dict()
     report = {
         "left_table": left_name,
@@ -63,7 +65,6 @@ def safe_merge_one_to_one(
         "right_only": indicator_counts.get("right_only", 0),
     }
 
-    # Clean up internal merge flag column before returning
     clean_merged = merged.drop(columns=["_merge"])
     return clean_merged, report
 
@@ -74,46 +75,25 @@ def validate_cast_crew_grain(
     crew_df: pd.DataFrame
 ) -> Dict[str, Any]:
     """
-    Validate that cast and crew tables preserve referential integrity
-    without multiplying films.
+    Validate referential integrity: ensures every cast and crew credit
+    belongs to a verified film in the films table.
     """
-    # ==========================================================================
-    # BLOCK: Referential Integrity Checks
-    # What it does: Confirms that every cast member and crew member is linked to
-    # a verified movie_id that actually exists in the films table.
-    # ==========================================================================
     film_ids = set(films_df["movie_id"])
     cast_film_ids = set(cast_df["movie_id"]) if not cast_df.empty else set()
     crew_film_ids = set(crew_df["movie_id"]) if not crew_df.empty else set()
 
-    # Identify any orphaned credits
     unmatched_cast_films = cast_film_ids - film_ids
     unmatched_crew_films = crew_film_ids - film_ids
 
-    # Films with no cast or crew credits
-    films_without_cast = film_ids - cast_film_ids
-    films_without_crew = film_ids - crew_film_ids
+    assert len(unmatched_cast_films) == 0, f"Found cast pointing to non-existent films: {unmatched_cast_films}"
+    assert len(unmatched_crew_films) == 0, f"Found crew pointing to non-existent films: {unmatched_crew_films}"
 
-    # ==========================================================================
-    # BLOCK: Assemble Audit Metrics & Enforce Zero-Orphan Invariant
-    # What it does: Compiles grain statistics (e.g. average cast per film) and
-    # asserts that zero orphaned credit records exist.
-    # ==========================================================================
-    report = {
+    return {
         "total_films": len(films_df),
-        "films_in_cast": len(cast_film_ids),
-        "films_in_crew": len(crew_film_ids),
-        "unmatched_cast_film_ids": list(unmatched_cast_films),
-        "unmatched_crew_film_ids": list(unmatched_crew_films),
-        "films_without_cast_count": len(films_without_cast),
-        "films_without_crew_count": len(films_without_crew),
         "total_cast_rows": len(cast_df),
         "total_crew_rows": len(crew_df),
         "avg_cast_per_film": len(cast_df) / len(films_df) if len(films_df) > 0 else 0.0,
         "avg_crew_per_film": len(crew_df) / len(films_df) if len(films_df) > 0 else 0.0,
+        "orphan_cast_count": len(unmatched_cast_films),
+        "orphan_crew_count": len(unmatched_crew_films),
     }
-
-    assert len(unmatched_cast_films) == 0, f"Found cast records pointing to non-existent films: {unmatched_cast_films}"
-    assert len(unmatched_crew_films) == 0, f"Found crew records pointing to non-existent films: {unmatched_crew_films}"
-
-    return report

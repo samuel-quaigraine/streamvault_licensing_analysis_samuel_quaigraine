@@ -175,14 +175,14 @@ streamvault_licensing_analysis_samuel_quaigraine/
 ├── requirements.txt                  # Python dependencies
 ├── README.md                         # This guide
 │
-├── pipeline/                         # Modular Pipeline Package
+├── pipeline/                         # Modular ETL Pipeline Package
 │   ├── __init__.py                   # Package marker
-│   ├── config.py                     # API configuration, timeouts, file paths
-│   ├── load.py                       # Ingestion & candidate line auditing (line 69)
-│   ├── extract.py                    # Polite, cached TMDb API fetcher with backoff
-│   ├── transform.py                  # Flattening, grains, and KPI calculations
-│   ├── validate.py                   # Merge validation and fan-out prevention
-│   └── checks.py                     # Data profiling, quality checks, and live spot-check
+│   ├── config.py                     # API configuration, thresholds, and dynamic directory auto-creation
+│   ├── extract.py                    # ETL Extract: Candidate CSV extraction (The Bouncer) + TMDb API extraction
+│   ├── validate.py                   # ETL Validate: 1-to-1 merge integrity guards and grain referential checks
+│   ├── transform.py                  # ETL Transform: 3-grain flattening, franchise tagging, $0 money filtering, KPIs
+│   ├── checks.py                     # ETL Checks: Pre-load QA gate (conservation: 127 = 112 + 15), profiling, spot-check
+│   └── load.py                       # ETL Load: Atomic table publishing (write_table_atomically) with SHA-256 hashes
 │
 ├── data/
 │   ├── raw/                          # Cached API JSON responses (gitignored)
@@ -315,6 +315,10 @@ python generate_charts.py
    ```
 
 ---
+
+> [!NOTE]
+> **Data File Gitignore Policy & Cross-Platform Auto-Creation**:
+> In accordance with data engineering best practices, generated datasets (`output/`, `data/processed/`, `data/manifest.csv`) and cached raw payloads (`data/raw/`) are purposefully **gitignored** to prevent repository bloat and ensure code serves as the reproducible source of truth. Only the initial candidate list (`id_list.csv`) is versioned. When `run_pipeline.py` is executed on any operating system (Windows, macOS, or Linux), `pipeline/config.py` automatically creates all required directories dynamically via `Path.mkdir(parents=True, exist_ok=True)`.
 
 ## 7. How to Run the Pipeline
 

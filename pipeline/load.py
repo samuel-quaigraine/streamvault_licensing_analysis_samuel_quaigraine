@@ -1,235 +1,143 @@
 """
-Data loading and candidate ID ingestion module.
-Explicitly accounts for all 127 candidate lines, including empty line 69,
-non-numeric formats, duplicates, and negative identifiers.
+ETL Step: LOAD (Atomic Table Publishing, Hashing & Deliverables Export).
+
+Analogies & Concept:
+Like the final dispatch loading bay in the factory:
+1. Receives clean, validated, and transformed analytical tables from upstream stations.
+2. Writes each table to a scratch file (.tmp.csv) first, then swaps it into place
+   in one atomic operating-system rename (os.replace).
+   If the power is cut or an error occurs mid-write, the destination warehouse table is NEVER corrupted!
+3. Calculates a stable 12-character SHA-256 content fingerprint for every published file.
+4. Provides a central load_all_tables_to_warehouse() helper to publish the complete delivery package.
+
+Course Lessons Applied from @materials-learning:
+- "pandas: How to Read and Write Files"
+- "Learning Path: Loading data and large files"
 """
 
+import hashlib
 import json
+import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, Optional, Tuple, Any
 import pandas as pd
-from pipeline.config import ID_LIST_PATH, RAW_DIR
+
+from pipeline.config import RAW_DIR, PROCESSED_DIR, OUTPUT_DIR
+
+# Backward-compatibility re-exports: ensures any existing tests or legacy scripts
+# that import candidate loading from pipeline.load continue working without breaking!
+from pipeline.extract import (
+    extract_candidate_ids as load_candidate_ids,
+    extract_candidate_ids as bounce_and_clean_candidates,
+)
 
 
-def load_candidate_ids(
-    filepath: Path = ID_LIST_PATH,
-) -> Tuple[pd.DataFrame, List[int], List[Dict[str, Any]]]:
+def write_table_atomically(dataframe: pd.DataFrame, target_path: Path) -> Path:
     """
-    Load and audit all 127 candidate rows from the candidate ID file.
-    
-    Returns:
-        candidate_df: DataFrame containing every line with its classification and status.
-        valid_ids: List of unique positive integer TMDb IDs ready for acquisition.
-        exclusion_log: List of dictionaries documenting every excluded or duplicate line.
+    Atomically write a DataFrame to CSV using a temporary file and atomic replace.
+
+    Lesson: 'pandas: How to Read and Write Files'
+    Plain English: Write to a scratch file first, then swap it into place in one
+    instant move. If the process is interrupted, the destination file is never corrupted.
     """
-    # ==========================================================================
-    # BLOCK: File Existence Check
-    # What it does: Ensures the input CSV file exists before trying to read it.
-    # ==========================================================================
-    if not filepath.exists():
-        raise FileNotFoundError(f"Candidate file not found at: {filepath}")
+    target_path = Path(target_path)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = target_path.with_suffix(".tmp.csv")
 
-    # ==========================================================================
-    # BLOCK: Read Raw Lines
-    # What it does: Reads the file line by line without stripping newlines early,
-    # so empty lines like line 69 are accurately preserved and counted.
-    # ==========================================================================
-    with open(filepath, "r", encoding="utf-8") as f:
-        raw_lines = [line.rstrip("\r\n") for line in f]
+    try:
+        dataframe.to_csv(temp_path, index=False)
+        os.replace(temp_path, target_path)
+    finally:
+        if temp_path.exists():
+            try:
+                temp_path.unlink()
+            except OSError:
+                pass
 
-    # ==========================================================================
-    # BLOCK: Header Verification
-    # What it does: Confirms line 1 is the expected CSV header 'tmdb_id'.
-    # ==========================================================================
-    if not raw_lines or raw_lines[0].strip() != "tmdb_id":
-        raise ValueError(f"Expected first line to be 'tmdb_id', got: {raw_lines[0] if raw_lines else 'empty'}")
+    return target_path
 
-    data_lines = raw_lines[1:]
-    total_candidate_rows = len(data_lines)
-    assert total_candidate_rows == 127, f"Expected 127 candidate rows, found {total_candidate_rows}"
 
-    records = []
-    seen_ids = set()
-    exclusion_log = []
+def compute_content_hash(dataframe: pd.DataFrame) -> str:
+    """
+    Compute a deterministic SHA-256 hash of a DataFrame's CSV representation.
 
-    # ==========================================================================
-    # BLOCK: Line-by-Line Candidate Audit Loop
-    # What it does: Loops through all 127 lines and classifies each entry:
-    # 1. Empty lines (Line 69)
-    # 2. Text missing markers ('N/A')
-    # 3. External IMDb format ('tt0468569')
-    # 4. Non-numeric or malformed text
-    # 5. Negative numbers ('-1')
-    # 6. Duplicate numbers
-    # 7. Valid positive TMDb integer IDs
-    # ==========================================================================
-    for idx, raw_val in enumerate(data_lines):
-        line_num = idx + 2  # 1-based index (header is line 1)
-        trimmed = raw_val.strip()
+    Plain English: A unique 12-char fingerprint of the data. If even a single
+    character or number changes, the fingerprint changes completely.
+    """
+    csv_bytes = dataframe.to_csv(index=False).encode("utf-8")
+    return hashlib.sha256(csv_bytes).hexdigest()[:12]
 
-        # Step 1: Check for empty line (specifically line 69)
-        if not trimmed:
-            reason = "Empty row / missing identifier"
-            records.append({
-                "line_number": line_num,
-                "raw_id": raw_val,
-                "parsed_id": None,
-                "status": "EXCLUDED",
-                "reason": reason,
-                "category": "Format Error"
-            })
-            exclusion_log.append({
-                "line": line_num,
-                "raw_id": "<EMPTY>",
-                "reason": reason,
-                "stage": "ID List Ingestion"
-            })
-            continue
 
-        # Step 2: Check for explicit string missing markers like N/A
-        if trimmed.upper() in ("N/A", "NA", "NULL", "NONE"):
-            reason = "Literal missing string marker"
-            records.append({
-                "line_number": line_num,
-                "raw_id": raw_val,
-                "parsed_id": None,
-                "status": "EXCLUDED",
-                "reason": reason,
-                "category": "Format Error"
-            })
-            exclusion_log.append({
-                "line": line_num,
-                "raw_id": raw_val,
-                "reason": reason,
-                "stage": "ID List Ingestion"
-            })
-            continue
+def load_all_tables_to_warehouse(
+    films_df: pd.DataFrame,
+    cast_df: pd.DataFrame,
+    crew_df: pd.DataFrame,
+    summary_kpis_df: pd.DataFrame,
+    franchise_ranks_df: pd.DataFrame,
+    standalone_ranks_df: pd.DataFrame,
+    talent_df: pd.DataFrame,
+    reconciliation_df: pd.DataFrame,
+    profiling_dict: Dict[str, Any],
+    output_dir: Path = OUTPUT_DIR,
+    processed_dir: Path = PROCESSED_DIR,
+) -> Dict[str, str]:
+    """
+    LOAD: Central publishing function that atomically writes all warehouse tables
+    and returns a dictionary of published table names and their content hashes.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    processed_dir.mkdir(parents=True, exist_ok=True)
 
-        # Step 3: Check for IMDb format (e.g. tt0468569)
-        if trimmed.startswith("tt"):
-            reason = "IMDb alphanumeric format instead of TMDb numeric integer"
-            records.append({
-                "line_number": line_num,
-                "raw_id": raw_val,
-                "parsed_id": None,
-                "imdb_id": trimmed,
-                "status": "EXTERNAL_FORMAT",
-                "reason": reason,
-                "category": "Format Error"
-            })
-            exclusion_log.append({
-                "line": line_num,
-                "raw_id": raw_val,
-                "reason": reason,
-                "stage": "ID List Ingestion"
-            })
-            continue
+    hashes = {}
 
-        # Step 4: Attempt integer parsing
-        try:
-            parsed_id = int(trimmed)
-        except ValueError:
-            reason = f"Non-numeric identifier: '{raw_val}'"
-            records.append({
-                "line_number": line_num,
-                "raw_id": raw_val,
-                "parsed_id": None,
-                "status": "EXCLUDED",
-                "reason": reason,
-                "category": "Format Error"
-            })
-            exclusion_log.append({
-                "line": line_num,
-                "raw_id": raw_val,
-                "reason": reason,
-                "stage": "ID List Ingestion"
-            })
-            continue
+    # 1. Intermediate Clean Relational Tables (data/processed/)
+    write_table_atomically(films_df, processed_dir / "films_analytical.csv")
+    write_table_atomically(cast_df, processed_dir / "cast_analytical.csv")
+    write_table_atomically(crew_df, processed_dir / "crew_analytical.csv")
 
-        # Step 5: Check for negative IDs (domain violation)
-        if parsed_id < 0:
-            reason = f"Negative integer identifier ({parsed_id})"
-            records.append({
-                "line_number": line_num,
-                "raw_id": raw_val,
-                "parsed_id": parsed_id,
-                "status": "EXCLUDED",
-                "reason": reason,
-                "category": "Domain Error"
-            })
-            exclusion_log.append({
-                "line": line_num,
-                "raw_id": raw_val,
-                "reason": reason,
-                "stage": "ID List Ingestion"
-            })
-            continue
+    # 2. Executive Deliverable Tables (output/)
+    write_table_atomically(films_df, output_dir / "clean_films.csv")
+    hashes["clean_films.csv"] = compute_content_hash(films_df)
 
-        # Step 6: Check for duplicate IDs already processed
-        if parsed_id in seen_ids:
-            reason = f"Duplicate identifier of earlier entry ({parsed_id})"
-            records.append({
-                "line_number": line_num,
-                "raw_id": raw_val,
-                "parsed_id": parsed_id,
-                "status": "DUPLICATE",
-                "reason": reason,
-                "category": "Duplicate"
-            })
-            exclusion_log.append({
-                "line": line_num,
-                "raw_id": raw_val,
-                "reason": reason,
-                "stage": "ID List Ingestion"
-            })
-            continue
+    write_table_atomically(cast_df, output_dir / "clean_cast.csv")
+    hashes["clean_cast.csv"] = compute_content_hash(cast_df)
 
-        # Step 7: Record valid unique candidate ID
-        seen_ids.add(parsed_id)
-        records.append({
-            "line_number": line_num,
-            "raw_id": raw_val,
-            "parsed_id": parsed_id,
-            "status": "VALID",
-            "reason": "Passed initial validation",
-            "category": "Valid"
-        })
+    write_table_atomically(crew_df, output_dir / "clean_crew.csv")
+    hashes["clean_crew.csv"] = compute_content_hash(crew_df)
 
-    # ==========================================================================
-    # BLOCK: Assemble Audit Dataframe & Valid ID List
-    # What it does: Converts the audit records into a pandas DataFrame and
-    # returns the list of unique valid IDs ready for TMDb extraction.
-    # ==========================================================================
-    candidate_df = pd.DataFrame(records)
-    valid_ids = sorted([r["parsed_id"] for r in records if r["status"] == "VALID"])
+    write_table_atomically(summary_kpis_df, output_dir / "summary_kpis.csv")
+    hashes["summary_kpis.csv"] = compute_content_hash(summary_kpis_df)
 
-    return candidate_df, valid_ids, exclusion_log
+    write_table_atomically(franchise_ranks_df, output_dir / "franchise_rankings.csv")
+    hashes["franchise_rankings.csv"] = compute_content_hash(franchise_ranks_df)
+
+    write_table_atomically(standalone_ranks_df, output_dir / "standalone_rankings.csv")
+    hashes["standalone_rankings.csv"] = compute_content_hash(standalone_ranks_df)
+
+    write_table_atomically(talent_df, output_dir / "talent_rankings.csv")
+    hashes["talent_rankings.csv"] = compute_content_hash(talent_df)
+
+    write_table_atomically(reconciliation_df, output_dir / "candidate_reconciliation.csv")
+    hashes["candidate_reconciliation.csv"] = compute_content_hash(reconciliation_df)
+
+    # 3. Profiling JSON
+    with open(output_dir / "profiling_summary.json", "w", encoding="utf-8") as f:
+        json.dump(profiling_dict, f, indent=2, default=str)
+
+    return hashes
 
 
 def load_cached_movie_data(
     movie_id: int,
     raw_dir: Path = RAW_DIR
 ) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
-    """
-    Load movie details and credits JSON responses from disk cache.
-    
-    What it does: Reads local JSON files from data/raw/ so the pipeline
-    runs completely offline without making unnecessary network requests.
-    """
-    # ==========================================================================
-    # BLOCK: Resolve Cache Paths
-    # What it does: Locates the cached details and credits files for this movie ID.
-    # ==========================================================================
+    """Load movie details and credits JSON responses from disk cache."""
     details_path = raw_dir / f"movie_{movie_id}.json"
     credits_path = raw_dir / f"credits_{movie_id}.json"
 
     details = None
     credits_data = None
 
-    # ==========================================================================
-    # BLOCK: Load Cached JSON from Disk
-    # What it does: Reads the JSON files if they exist on disk.
-    # ==========================================================================
     if details_path.exists():
         with open(details_path, "r", encoding="utf-8") as f:
             details = json.load(f)

@@ -13,12 +13,15 @@ venv/
 # Testing
 .pytest_cache/
 
-# Data files
+# Data files (Generated tables and caches - do not commit to Git)
 *.parquet
 *.xlsx
 data/raw/
+data/processed/
+data/manifest.csv
+output/
 
-# Allow candidate list for reproducibility
+# Allow seed candidate list for reproducibility
 !id_list.csv
 
 # Jupyter
